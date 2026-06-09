@@ -401,8 +401,35 @@ export default function App() {
     setAuthLoading(true);
     try {
       await signInWithPopup(auth, provider);
+      toast.success("¡Sesión iniciada con Google con éxito!", "Bienvenido");
     } catch (error: any) {
       console.error("Google Auth error:", error);
+      const errorCode = error?.code;
+      
+      if (errorCode === "auth/unauthorized-domain") {
+        toast.error(
+          "El dominio 'zenticket.mx' no está autorizado en la Consola Firebase. Ve a Firebase Console > Authentication > Settings (Pestaña Ajustes) > Dominios Autorizados y agrega 'zenticket.mx'.",
+          "Dominio No Autorizado",
+          { duration: 15000 }
+        );
+      } else if (errorCode === "auth/popup-blocked") {
+        toast.info(
+          "Tu navegador bloqueó la ventana emergente de Google. Habilita las ventanas emergentes para este sitio e inténtalo de nuevo.",
+          "Ventana Emergente Bloqueada"
+        );
+      } else if (errorCode === "auth/operation-not-allowed") {
+        toast.error(
+          "Google como método de inicio de sesión no está habilitado en tu Consola Firebase > Authentication > Sign-in method.",
+          "Google Deshabilitado"
+        );
+      } else if (errorCode === "auth/cancelled-popup-request") {
+        toast.info("Acceso cancelado.", "Operación Cancelada");
+      } else {
+        toast.error(
+          `Detalle del error: ${errorCode || error.message || error}. Por favor, verifica la configuración de Dominios Autorizados de Firebase.`,
+          "Error de Inicio de Sesión"
+        );
+      }
     } finally {
       setAuthLoading(false);
     }
