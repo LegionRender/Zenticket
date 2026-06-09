@@ -1,0 +1,236 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Arial", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-brand-purple: #0B53F4;
+  --color-brand-gold: #FFB200;
+  --color-brand-bg: #F8F9FD;
+}
+
+body {
+  background-color: #F8F9FD;
+  color: #1E293B;
+  font-family: var(--font-sans);
+}
+
+/* Custom premium scrollbar for bento grid panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0B53F4;
+}
+
+/* Custom animation for blinking terminal cursor */
+@keyframes pulse-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.blink {
+  animation: pulse-blink 1.5s infinite;
+}
+
+/* Smooth fade-in animation for tab contents */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in_50 {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* ==========================================================================
+   DINAMIC PREFERENCES: FONT SIZE, BORDER RADIUS, DARK THEME
+   ========================================================================== */
+
+/* 1. Font Size Scaling (Scales all Tailwind rem-based values) */
+html[data-font-size="small"] {
+  font-size: 13px !important;
+}
+html[data-font-size="medium"] {
+  font-size: 15px !important;
+}
+html[data-font-size="large"] {
+  font-size: 17.5px !important;
+}
+
+/* 2. Border Radius Preferences (Wildcard classes to ensure total app consistency) */
+html[data-radius="compact"] [class*="rounded-"] {
+  border-radius: 6px !important;
+}
+html[data-radius="compact"] [class*="rounded-full"],
+html[data-radius="compact"] .rounded-full {
+  border-radius: 9999px !important; /* Keep circular avatars circular */
+}
+
+html[data-radius="extra"] [class*="rounded-"] {
+  border-radius: 24px !important;
+}
+html[data-radius="extra"] [class*="rounded-full"],
+html[data-radius="extra"] .rounded-full {
+  border-radius: 9999px !important; /* Keep circular avatars circular */
+}
+html[data-radius="extra"] [class*="rounded-lg"] {
+  border-radius: 14px !important;
+}
+html[data-radius="extra"] [class*="rounded-xl"] {
+  border-radius: 18px !important;
+}
+html[data-radius="extra"] [class*="rounded-2xl"] {
+  border-radius: 22px !important;
+}
+html[data-radius="extra"] [class*="rounded-3xl"] {
+  border-radius: 30px !important;
+}
+
+/* 3. High-Fidelity Custom Dark Mode Colors Overrides */
+html.dark body,
+html.dark .min-h-screen,
+html.dark main {
+  background-color: #0b0f19 !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .bg-white {
+  background-color: #121926 !important;
+  color: #f8fafc !important;
+}
+
+/* Override all common light blue/gray background classes */
+html.dark .bg-\[\#F8F9FE\],
+html.dark .bg-\[\#F8F9FD\],
+html.dark .bg-\[\#EDF0F7\],
+html.dark .bg-slate-50,
+html.dark .bg-slate-100,
+html.dark [class*="bg-[#F8F9F"],
+html.dark [class*="bg-[#FAF9F"],
+html.dark [class*="bg-[#EDF0F"] {
+  background-color: #080c14 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Sidebar and Header Dark styling */
+html.dark aside,
+html.dark header,
+html.dark div[class*="sticky"][class*="top-0"],
+html.dark #BottomNavigationBar {
+  background-color: #111724 !important;
+  border-color: #1e293b !important;
+}
+
+html.dark header input,
+html.dark div[class*="sticky"][class*="top-0"] input {
+  background-color: #182235 !important;
+  color: #ffffff !important;
+}
+
+html.dark footer {
+  background-color: #06090e !important;
+  border-color: #111724 !important;
+  color: #64748b !important;
+}
+
+/* Active segment and icon backgrounds highlighting in dark mode */
+html.dark .bg-\[\#EBF1FF\],
+html.dark .bg-\[\#ebf1ff\],
+html.dark [class*="bg-[#EBF1FF]" i],
+html.dark [class*="bg-[#ebf1ff]" i] {
+  background-color: rgba(59, 130, 246, 0.16) !important;
+  color: #3b82f6 !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+html.dark .text-\[\#0B53F4\],
+html.dark .text-\[\#0b53f4\],
+html.dark [class*="text-[#0B53F4]" i],
+html.dark [class*="text-[#0b53f4]" i],
+html.dark .text-blue-600 {
+  color: #3b82f6 !important;
+}
+
+/* Text overrides */
+html.dark .text-slate-900,
+html.dark .text-slate-850,
+html.dark .text-slate-800,
+html.dark .text-slate-700,
+html.dark .text-slate-650 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-slate-500,
+html.dark .text-slate-455,
+html.dark .text-slate-450,
+html.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+/* Border overrides */
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-200\/50,
+html.dark .border-slate-200\/80,
+html.dark .border-slate-200\/60,
+html.dark .border-slate-100\/80,
+html.dark [class*="border-slate-"] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Also override all Tailwind divide-y list separators in dark mode to be subtle like Starbucks */
+html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-100 > *,
+html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+html.dark [class*="divide-"] > :not([hidden]) ~ :not([hidden]),
+html.dark [class*="divide-"] > * {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark .border-none {
+  border-style: none !important;
+}
+
+/* Input / Field styling */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #121926 !important;
+  border-color: #2e3d59 !important;
+  color: #ffffff !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #475569 !important;
+}
+
+/* Hover & Active item status */
+html.dark .hover\:bg-slate-50:hover,
+html.dark .hover\:bg-slate-100:hover,
+html.dark .hover\:bg-slate-55:hover,
+html.dark [class*="hover:bg-slate-50"]:hover,
+html.dark [class*="hover:bg-slate-100"]:hover,
+html.dark [class*="hover:bg-slate-55"]:hover {
+  background-color: #1a2336 !important;
+}
+
+/* Active sub-card highlights */
+html.dark .shadow-xs,
+html.dark .shadow-sm {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+html.dark .border-slate-200\/30 {
+  border-color: #1c273a !important;
+}
