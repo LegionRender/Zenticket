@@ -19,6 +19,7 @@ import AdminScreen from "./components/AdminScreen";
 import TicketsListScreen from "./components/TicketsListScreen";
 import { useToast } from "./components/Toast";
 import Logo from "./components/Logo";
+import LandingPage from "./components/LandingPage";
 
 import { 
   Sparkles, FileText, Cpu, Settings, LogIn, LogOut, Loader2, PlayCircle, HelpCircle, 
@@ -96,6 +97,7 @@ export default function App() {
   const [isSandboxMode, setIsSandboxMode] = useState(false);
   const [sandboxUserId, setSandboxUserId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [showLandingPage, setShowLandingPage] = useState(true);
 
   // Manual credentials authentication & registration states
   const [authFormMode, setAuthFormMode] = useState<"login" | "signup">("login");
@@ -1059,14 +1061,29 @@ export default function App() {
     }
   };
 
-  if (activeUserId) {
+  if (showLandingPage) {
+    return (
+      <LandingPage 
+        onOpenAuth={(mode) => {
+          if (mode === "sandbox") {
+            handleEnterSandbox();
+          } else {
+            setAuthFormMode(mode === "signup" ? "signup" : "login");
+            setShowLandingPage(false);
+          }
+        }} 
+        isLoggedIn={!!activeUserId}
+        onGoToDashboard={() => setShowLandingPage(false)}
+      />
+    );
+  } else if (activeUserId) {
     return (
       <div className="min-h-screen bg-[#F8F9FD] text-slate-800 flex flex-col md:flex-row font-sans select-none antialiased">
         {/* DESKTOP SIDEBAR */}
-        <aside className="hidden md:flex md:flex-col md:w-72 bg-white border-r border-slate-200/80 p-6 shrink-0 justify-between min-h-screen sticky top-0 font-sans">
+        <aside className="hidden md:flex md:flex-col md:w-72 bg-white border-r border-[#E2E8F0] p-6 shrink-0 justify-between min-h-screen sticky top-0 font-sans">
           <div className="space-y-8">
             {/* Logo Brand Area */}
-            <Logo size="md" />
+            <Logo size="md" onClick={() => setShowLandingPage(true)} />
 
             {/* Navigation Menu */}
             <nav className="flex flex-col gap-1.5">
@@ -1463,7 +1480,7 @@ export default function App() {
         {/* Basic Header */}
         <header className="flex bg-white border-b border-slate-200/60 py-4 px-6 lg:px-12 justify-between items-center gap-4 shrink-0 shadow-xs">
           <div className="flex items-center gap-3">
-            <Logo size="md" withText={true} />
+            <Logo size="md" withText={true} onClick={() => setShowLandingPage(true)} />
             <span className="hidden sm:inline-block text-[10px] font-extrabold bg-[#0B53F4]/10 border border-[#0B53F4]/20 text-[#0B53F4] px-2.5 py-0.5 rounded-md uppercase tracking-wider">
               Automatiza tus Facturas
             </span>
@@ -1471,8 +1488,15 @@ export default function App() {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowLandingPage(true)}
+              className="text-xs font-bold text-slate-500 hover:text-slate-805 px-3.5 py-2.5 rounded-xl transition cursor-pointer"
+            >
+              Volver al Inicio
+            </button>
+
+            <button
               onClick={handleEnterSandbox}
-              className="text-xs font-bold text-slate-600 hover:text-slate-850 bg-white border border-slate-200 hover:border-slate-300 px-4 py-2.5 rounded-xl transition shadow-sm bg-transparent"
+              className="text-xs font-bold text-slate-600 hover:text-slate-850 bg-white border border-slate-200 hover:border-slate-300 px-4 py-2.5 rounded-xl transition shadow-sm bg-transparent cursor-pointer"
             >
               Explorar Sandbox
             </button>
@@ -1602,14 +1626,23 @@ export default function App() {
                   </form>
 
                   {/* BOTTOM LINK TO SIGNUP */}
-                  <div className="text-center py-1">
-                    <span className="text-xs text-slate-500 font-medium select-none">¿No tienes una cuenta aún? </span>
+                  <div className="text-center py-1 flex flex-col items-center gap-1.5">
+                    <div>
+                      <span className="text-xs text-slate-500 font-medium select-none">¿No tienes una cuenta aún? </span>
+                      <button
+                        type="button"
+                        onClick={() => { setAuthFormMode("signup"); setAuthError(""); setVerificationEmailSentTo(null); }}
+                        className="text-xs text-[#0B53F4] font-extrabold hover:underline cursor-pointer"
+                      >
+                        Crear cuenta
+                      </button>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => { setAuthFormMode("signup"); setAuthError(""); setVerificationEmailSentTo(null); }}
-                      className="text-xs text-[#0B53F4] font-extrabold hover:underline cursor-pointer"
+                      onClick={() => setShowLandingPage(true)}
+                      className="text-[11px] text-slate-400 hover:text-slate-600 font-bold transition mt-1 cursor-pointer"
                     >
-                      Crear cuenta
+                      ← Volver a la página de inicio
                     </button>
                   </div>
 
@@ -1737,14 +1770,23 @@ export default function App() {
                   </form>
 
                   {/* BOTTOM LINK TO LOGIN */}
-                  <div className="text-center py-1">
-                    <span className="text-xs text-slate-500 font-medium select-none">¿Ya tienes una cuenta? </span>
+                  <div className="text-center py-1 flex flex-col items-center gap-1.5">
+                    <div>
+                      <span className="text-xs text-slate-500 font-medium select-none">¿Ya tienes una cuenta? </span>
+                      <button
+                        type="button"
+                        onClick={() => { setAuthFormMode("login"); setAuthError(""); setVerificationEmailSentTo(null); }}
+                        className="text-xs text-[#0B53F4] font-extrabold hover:underline cursor-pointer"
+                      >
+                        Iniciar sesión aquí
+                      </button>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => { setAuthFormMode("login"); setAuthError(""); setVerificationEmailSentTo(null); }}
-                      className="text-xs text-[#0B53F4] font-extrabold hover:underline cursor-pointer"
+                      onClick={() => setShowLandingPage(true)}
+                      className="text-[11px] text-slate-400 hover:text-slate-600 font-bold transition mt-1 cursor-pointer"
                     >
-                      Iniciar sesión aquí
+                      ← Volver a la página de inicio
                     </button>
                   </div>
                 </div>

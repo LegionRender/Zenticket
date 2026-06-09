@@ -6,6 +6,7 @@ interface LogoProps {
   withText?: boolean;
   variant?: "horizontal" | "vertical" | "app-icon" | "mascot";
   theme?: "light" | "dark";
+  onClick?: () => void;
 }
 
 // Highly stylized custom vector mascot
@@ -199,6 +200,7 @@ export default function Logo({
   withText = true,
   variant = "horizontal",
   theme = "light",
+  onClick,
 }: LogoProps) {
   // Size specification mapping to standard Tailwind classes
   const sizeClasses = {
@@ -241,10 +243,12 @@ export default function Logo({
   const ticketColor = theme === "dark" ? "text-white" : "text-[#1E293B]";
   const taglineColor = theme === "dark" ? "text-slate-400" : "text-slate-500";
 
+  const cursorClass = onClick ? "cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all" : "";
+
   // If text is not requested, or layout is strictly requested as only mascot
   if (!withText || variant === "mascot") {
     return (
-      <div className={`inline-flex items-center justify-center select-none ${className} shrink-0`}>
+      <div onClick={onClick} className={`inline-flex items-center justify-center select-none ${cursorClass} ${className} shrink-0`}>
         <div className={currentSize.mascot}>
           <MascotSvg showShadow={true} showBg={false} />
         </div>
@@ -255,7 +259,7 @@ export default function Logo({
   // If variant requested is "app-icon" (the beautiful blue background launcher)
   if (variant === "app-icon") {
     return (
-      <div className={`inline-flex items-center justify-center select-none ${className} shrink-0`}>
+      <div onClick={onClick} className={`inline-flex items-center justify-center select-none ${cursorClass} ${className} shrink-0`}>
         <div className={`${currentSize.mascot} shadow-md shadow-[#0C66FF]/15 transform transition-transform hover:scale-105 duration-200`}>
           <MascotSvg showShadow={true} showBg={true} />
         </div>
@@ -266,7 +270,7 @@ export default function Logo({
   // If variant requested is vertical (centered mascot on top, brand text below)
   if (variant === "vertical") {
     return (
-      <div className={`flex flex-col items-center justify-center text-center select-none ${currentSize.gap} ${className}`}>
+      <div onClick={onClick} className={`flex flex-col items-center justify-center text-center select-none ${currentSize.gap} ${cursorClass} ${className}`}>
         <div className="w-24 h-24 md:w-32 md:h-32 transform transition-transform hover:scale-105 duration-350">
           <MascotSvg showShadow={true} showBg={false} />
         </div>
@@ -286,7 +290,7 @@ export default function Logo({
 
   // DEFAULT/HORIZONTAL: Mascot on Left, Text & Tagline on the Right
   return (
-    <div className={`flex items-center select-none ${currentSize.gap} ${className} shrink-0`}>
+    <div onClick={onClick} className={`flex items-center select-none ${currentSize.gap} ${cursorClass} ${className} shrink-0`}>
       <div className={`${currentSize.mascot} transform transition-transform hover:scale-105 duration-200`}>
         <MascotSvg showShadow={true} showBg={false} />
       </div>
