@@ -7,6 +7,7 @@ export interface FiscalProfile {
   usoCFDI: string; // e.g. "G03", "D01", "D02", "CP01"
   createdAt: string;
   updatedAt?: string;
+  personalGeminiKey?: string; // Optional user's custom Gemini API key to optimize complex processes
 }
 
 export interface TicketItem {
@@ -40,6 +41,8 @@ export interface Ticket {
   invoiceId?: string;
   errorMsg?: string;
   createdAt: string;
+  cost?: number; // OCR cost
+  rawCost?: number; // Raw model token-based cost
 }
 
 export interface ConnectorField {
@@ -60,6 +63,9 @@ export interface Connector {
   fieldsJson: string; // Serialized ConnectorField[]
   flowJson: string; // Serialized string[] (steps description)
   createdAt: string;
+  cost?: number; // Training/learning cost
+  rawCost?: number; // Raw model training token-based cost
+  learnedFrom?: "automatizacion_ticket" | "portal_admin"; // Origin of learning
 }
 
 export interface Invoice {
@@ -75,4 +81,7 @@ export interface Invoice {
   xmlContent: string;
   pdfHtml?: string; // HTML invoice layout
   createdAt: string;
+  cost?: number;
+  rawCost?: number; // Raw model execution token-based cost
+  connectorType?: "existente" | "nuevo";
 }

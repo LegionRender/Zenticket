@@ -13,8 +13,8 @@ interface ScannerAndSimulatorProps {
   connectors: Connector[]; // Pass active database connectors
   onSaveTicketToDb: (ticket: Ticket) => Promise<string>; // saves to firebase
   onUpdateTicketInDb: (ticketId: string, updates: Partial<Ticket>) => Promise<void>;
-  onSaveInvoiceToDb: (ticketId: string, xml: string, pdf: string, uuid: string, emisorRfc: string, emisorName: string, total: number) => Promise<void>;
-  onLearnConnectorInline: (nombre: string, rfc: string) => Promise<Connector>;
+  onSaveInvoiceToDb: (ticketId: string, xml: string, pdf: string, uuid: string, emisorRfc: string, emisorName: string, total: number, cost?: number, connectorType?: "existente" | "nuevo", rawCost?: number) => Promise<void>;
+  onLearnConnectorInline: (nombre: string, rfc: string, learnedFrom?: "automatizacion_ticket" | "portal_admin") => Promise<Connector>;
   tickets: Ticket[];
   preselectedTicketId: string | null;
   onClearPreselectedTicket: () => void;
@@ -42,6 +42,7 @@ export default function ScannerAndSimulator({
   // Extracted Data & Active entities
   const [extractedData, setExtractedData] = useState<ExtractedTicketData | null>(null);
   const [matchingConnector, setMatchingConnector] = useState<Connector | null>(null);
+  const [isConnectorNewlyLearned, setIsConnectorNewlyLearned] = useState(false);
   const [ticketId, setTicketId] = useState<string | null>(null);
 
   // Manual Editing/Correction Form states
@@ -132,9 +133,13 @@ export default function ScannerAndSimulator({
       setTicketImage(dataUrl);
 
       // Trigger server OCR
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (fiscalProfile?.personalGeminiKey) {
+        headers["x-gemini-api-key"] = fiscalProfile.personalGeminiKey;
+      }
       const response = await fetch("/api/tickets/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           image: dataUrl.split(",")[1],
           mimeType: "image/png",
@@ -154,7 +159,7 @@ export default function ScannerAndSimulator({
         throw new Error(errorMsg);
       }
 
-      const ocrResult: ExtractedTicketData = await response.json();
+      const ocrResult: any = await response.json();
       setExtractedData(ocrResult);
       setEditNombre(ocrResult.nombreEmisor || "");
       setEditRfc(ocrResult.rfcEmisor || "");
@@ -177,6 +182,8 @@ export default function ScannerAndSimulator({
         sucursal: ocrResult.sucursal || "",
         itemsJson: JSON.stringify(ocrResult.items),
         createdAt: new Date().toISOString(),
+        cost: ocrResult.cost !== undefined ? ocrResult.cost : 0.50,
+        rawCost: ocrResult.rawCost !== undefined ? ocrResult.rawCost : 0,
       });
       setTicketId(tId);
 
@@ -203,6 +210,7 @@ export default function ScannerAndSimulator({
         c.nombre.toLowerCase().includes(data.nombreEmisor.toLowerCase())
     );
     setMatchingConnector(found || null);
+    setIsConnectorNewlyLearned(false);
   };
 
   // Convert files loaded manually to base64 and parse
@@ -221,9 +229,13 @@ export default function ScannerAndSimulator({
         const mime = file.type;
         const rawBase64 = base64Str.split(",")[1];
 
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (fiscalProfile?.personalGeminiKey) {
+          headers["x-gemini-api-key"] = fiscalProfile.personalGeminiKey;
+        }
         const response = await fetch("/api/tickets/analyze", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             image: rawBase64,
             mimeType: mime,
@@ -243,7 +255,7 @@ export default function ScannerAndSimulator({
           throw new Error(errorMsg);
         }
 
-        const ocrResult: ExtractedTicketData = await response.json();
+        const ocrResult: any = await response.json();
         setExtractedData(ocrResult);
         setEditNombre(ocrResult.nombreEmisor || "");
         setEditRfc(ocrResult.rfcEmisor || "");
@@ -266,6 +278,8 @@ export default function ScannerAndSimulator({
           sucursal: ocrResult.sucursal || "",
           itemsJson: JSON.stringify(ocrResult.items),
           createdAt: new Date().toISOString(),
+          cost: ocrResult.cost !== undefined ? ocrResult.cost : 0.50,
+          rawCost: ocrResult.rawCost !== undefined ? ocrResult.rawCost : 0,
         });
         setTicketId(tId);
 
@@ -291,6 +305,7 @@ export default function ScannerAndSimulator({
     try {
       const learned = await onLearnConnectorInline(extractedData.nombreEmisor, extractedData.rfcEmisor);
       setMatchingConnector(learned);
+      setIsConnectorNewlyLearned(true);
 
       // update ticket with new connector matched
       if (ticketId) {
@@ -389,7 +404,10 @@ export default function ScannerAndSimulator({
         invoiceData.folioFiscal,
         extractedData.rfcEmisor,
         extractedData.nombreEmisor,
-        extractedData.total
+        extractedData.total,
+        invoiceData.cost !== undefined ? invoiceData.cost : (isConnectorNewlyLearned ? 15.00 : 0.25),
+        isConnectorNewlyLearned ? "nuevo" : "existente",
+        invoiceData.rawCost !== undefined ? invoiceData.rawCost : 0
       );
 
       // update ticket state

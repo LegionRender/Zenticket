@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { auth, db } from "./firebase";
 import { 
   collection, doc, setDoc, getDoc, getDocs, onSnapshot, query, where, orderBy, getDocFromServer, deleteDoc 
 } from "firebase/firestore";
 import { 
-  signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User, signInAnonymously 
+  signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User, signInAnonymously,
+  createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendEmailVerification
 } from "firebase/auth";
 import { FiscalProfile, Ticket, Connector, Invoice } from "./types";
 import { handleFirestoreError, OperationType } from "./lib/firestore-helper";
@@ -21,7 +22,7 @@ import Logo from "./components/Logo";
 import { 
   Sparkles, FileText, Cpu, Settings, LogIn, LogOut, Loader2, PlayCircle, HelpCircle, 
   Terminal, ShieldCheck, AlertCircle, Shield, TrendingUp, Layers, HelpCircle as HelpIcon,
-  CheckCircle, ListFilter, Camera, User as UserIcon, Home, Bell, Search
+  CheckCircle, ListFilter, Camera, User as UserIcon, Home, Bell, Search, UserPlus, Mail, Lock, Building, Hash
 } from "lucide-react";
 
 const SEED_DEFAULT_CONNECTORS: Connector[] = [
@@ -95,6 +96,21 @@ export default function App() {
   const [sandboxUserId, setSandboxUserId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // Manual credentials authentication & registration states
+  const [authFormMode, setAuthFormMode] = useState<"login" | "signup">("login");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authConfirmPassword, setAuthConfirmPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [verificationEmailSentTo, setVerificationEmailSentTo] = useState<string | null>(null);
+  
+  // Custom manual metadata registration fields (Mexico Invoice / CFDI parameters)
+  const [authRazonSocial, setAuthRazonSocial] = useState("");
+  const [authRfc, setAuthRfc] = useState("");
+  const [authCP, setAuthCP] = useState("");
+  const [authRegimen, setAuthRegimen] = useState("601");
+  const [authUsoCFDI, setAuthUsoCFDI] = useState("G03");
+
   // Determine active owner UID
   const getActiveUserId = (): string | null => {
     if (currentUser) return currentUser.uid;
@@ -166,6 +182,50 @@ export default function App() {
   // Action Pending loaders
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isLearningLoading, setIsLearningLoading] = useState(false);
+  const [learningStatus, setLearningStatus] = useState("");
+  const [learningProgress, setLearningProgress] = useState(0);
+  const [learningCompany, setLearningCompany] = useState("");
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cost limitation settings for AI learning
+  const [learningBudgetLimit, setLearningBudgetLimit] = useState<number>(10);
+
+  useEffect(() => {
+    const docRef = doc(db, "settings", "learningConfig");
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.limit !== undefined) {
+          setLearningBudgetLimit(Number(data.limit));
+        }
+      }
+    }, (error) => {
+      console.warn("[Firestore settings] Limit config sync deferred:", error);
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleUpdateLearningBudgetLimit = async (newLimit: number) => {
+    try {
+      await setDoc(doc(db, "settings", "learningConfig"), { limit: newLimit }, { merge: true });
+      toast.success(`Tope para aprendizaje de IA establecido en $${newLimit.toFixed(2)} MXN`, "Límite Guardado");
+    } catch (err: any) {
+      console.error("No se pudo guardar la configuración de presupuesto:", err);
+      toast.error("Ocurrió un error al persistir el límite de presupuesto.");
+    }
+  };
+
+  // Expose a function to cancel/abort the active learning process
+  const handleCancelLearning = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLearningLoading(false);
+    setLearningProgress(0);
+    setLearningStatus("");
+    setLearningCompany("");
+  };
 
   // Validate Firestore Connection on startup as mandated
   useEffect(() => {
@@ -342,6 +402,122 @@ export default function App() {
     await signOut(auth);
   };
 
+  const handleManualSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    setVerificationEmailSentTo(null);
+    
+    if (!authEmail || !authPassword) {
+      setAuthError("El correo electrónico y la contraseña son obligatorios.");
+      return;
+    }
+    if (authPassword.length < 6) {
+      setAuthError("La contraseña debe tener mínimo 6 caracteres.");
+      return;
+    }
+    if (authPassword !== authConfirmPassword) {
+      setAuthError("Las contraseñas no coinciden.");
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      // 1. Create firebase auth user
+      const userCredential = await createUserWithEmailAndPassword(auth, authEmail, authPassword);
+      const user = userCredential.user;
+      
+      // 2. Send email verification link
+      await sendEmailVerification(user);
+      
+      // 3. Initialize default fiscal profile (with empty placeholders so they populate it later inside their dashboard)
+      const newProfile: FiscalProfile = {
+        userId: user.uid,
+        rfc: "",
+        razonSocial: "",
+        regimenFiscal: "601",
+        codigoPostal: "",
+        usoCFDI: "G03",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      await setDoc(doc(db, "fiscalProfiles", user.uid), newProfile);
+      
+      // 4. Set state that email verification was sent
+      setVerificationEmailSentTo(authEmail);
+      
+      // 5. Force sign out immediately so they must verify and re-login
+      await signOut(auth);
+      
+      toast.success(`Se ha enviado un correo de verificación a ${authEmail}`, "Correo Enviado");
+      
+      // Reset inputs and transition to login form with verification instructions
+      setAuthFormMode("login");
+      setAuthPassword("");
+      setAuthConfirmPassword("");
+    } catch (err: any) {
+      console.error("SignUp error:", err);
+      let localizedMsg = "Ocurrió un error al registrar la cuenta.";
+      if (err.code === "auth/email-already-in-use") {
+        localizedMsg = "El correo electrónico ya está registrado por otro usuario.";
+      } else if (err.code === "auth/invalid-email") {
+        localizedMsg = "El formato del correo electrónico no es válido.";
+      } else if (err.code === "auth/weak-password") {
+        localizedMsg = "La contraseña es muy débil (mínimo 6 caracteres).";
+      } else if (err.message) {
+        localizedMsg = err.message;
+      }
+      setAuthError(localizedMsg);
+      toast.error(localizedMsg, "Error de Registro");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleManualSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    setVerificationEmailSentTo(null);
+
+    if (!authEmail || !authPassword) {
+      setAuthError("Por favor ingresa tu correo y contraseña.");
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, authEmail, authPassword);
+      const user = userCredential.user;
+      
+      // Enforce email verification (exclude anonymous / Google which are pre-verified on providers)
+      if (!user.emailVerified) {
+        setAuthError(`El correo ${user.email} no ha sido verificado aún. Por favor, revisa tu correo y confirma tu cuenta antes de ingresar.`);
+        toast.warning("Verificación requerida", "Verifica tu correo");
+        await signOut(auth);
+        return;
+      }
+
+      toast.success("¡Sesión iniciada con éxito!", "Sesión Iniciada");
+      // Reset inputs
+      setAuthEmail("");
+      setAuthPassword("");
+    } catch (err: any) {
+      console.error("SignIn error:", err);
+      let localizedMsg = "Credenciales incorrectas o usuario no registrado.";
+      if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+        localizedMsg = "Credenciales incorrectas. Verifica tu correo, contraseña o regístrate.";
+      } else if (err.code === "auth/invalid-email") {
+        localizedMsg = "El formato de correo no es válido.";
+      } else if (err.message) {
+        localizedMsg = err.message;
+      }
+      setAuthError(localizedMsg);
+      toast.error(localizedMsg, "Error de Acceso");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   // Profile Save
   const handleSaveProfile = async (profileData: FiscalProfile) => {
     if (!activeUserId) return;
@@ -415,7 +591,10 @@ export default function App() {
     uuid: string,
     emisorRfc: string,
     emisorName: string,
-    total: number
+    total: number,
+    cost?: number,
+    connectorType?: "existente" | "nuevo",
+    rawCost?: number
   ) => {
     if (!activeUserId) return;
 
@@ -433,7 +612,10 @@ export default function App() {
         total,
         xmlContent: xml,
         pdfHtml: pdf,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        cost: cost !== undefined ? cost : 0.25,
+        rawCost: rawCost !== undefined ? rawCost : 0,
+        connectorType: connectorType || "existente"
       };
       await setDoc(invoiceRef, newInvoice);
     } catch (error) {
@@ -442,18 +624,62 @@ export default function App() {
   };
 
   // Connector Learning Callback (inline from ticket screen)
-  const handleLearnConnectorInline = async (nombre: string, rfc: string): Promise<Connector> => {
+  const handleLearnConnectorInline = async (
+    nombre: string,
+    rfc: string,
+    learnedFrom: "automatizacion_ticket" | "portal_admin" = "automatizacion_ticket",
+    tokenSaver?: boolean
+  ): Promise<Connector> => {
     if (!activeUserId) throw new Error("Autenticación requerida para instruir IA.");
+
+    // Instantiate AbortController
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLearningLoading(true);
+    setLearningCompany(nombre);
+    setLearningProgress(5);
+    setLearningStatus("Iniciando conexión con pasarela de consulta...");
+
     const learningToastId = toast.loading(`Analizando portal emisor para ${nombre}...`, "IA Aprendiendo Conector");
+
+    // Interval to dynamically drive the real-time progress bar UI
+    let currentVal = 5;
+    const progressInterval = setInterval(() => {
+      if (currentVal < 92) {
+        currentVal += Math.floor(Math.random() * 5) + 3;
+        if (currentVal > 92) currentVal = 92;
+        setLearningProgress(currentVal);
+
+        // Progress stage statuses
+        if (currentVal < 25) {
+          setLearningStatus(`Rastreando políticas del SAT para emisor ${nombre}...`);
+        } else if (currentVal < 50) {
+          setLearningStatus(`Mapeando selectores del portal y buscando formularios...`);
+        } else if (currentVal < 70) {
+          setLearningStatus(`Infiriendo campos requeridos y analizando estructuras DOM...`);
+        } else if (currentVal < 88) {
+          setLearningStatus(`Sintetizando flujo operacional JSON con modelos de lenguaje...`);
+        } else {
+          setLearningStatus(`Heurística avanzada completada. Construyendo esquema de integración...`);
+        }
+      }
+    }, 700);
 
     const pathConnectorWrite = "connectors";
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (fiscalProfile?.personalGeminiKey) {
+        headers["x-gemini-api-key"] = fiscalProfile.personalGeminiKey;
+      }
       const response = await fetch("/api/connectors/learn", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombreEmisor: nombre, rfcEmisor: rfc }),
+        headers,
+        body: JSON.stringify({ nombreEmisor: nombre, rfcEmisor: rfc, learnedFrom, tokenSaver }),
+        signal: controller.signal,
       });
+
+      clearInterval(progressInterval);
 
       if (!response.ok) {
         let errorMsg = "No se pudo obtener información de automatización del portal.";
@@ -468,6 +694,9 @@ export default function App() {
         throw new Error(errorMsg);
       }
 
+      setLearningProgress(96);
+      setLearningStatus("Conector indexado en base de datos. Guardando...");
+
       const specs = await response.json();
 
       // Formulate custom Connector entity
@@ -478,13 +707,20 @@ export default function App() {
         portalUrl: specs.portalUrl,
         fieldsJson: JSON.stringify(specs.fields),
         flowJson: JSON.stringify(specs.steps),
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        cost: specs.cost !== undefined ? specs.cost : (learnedFrom === "portal_admin" ? 25.00 : 15.00),
+        rawCost: specs.rawCost !== undefined ? specs.rawCost : 0,
+        learnedFrom: learnedFrom
       };
 
       try {
         const connectorRef = doc(collection(db, "connectors"));
         await setDoc(connectorRef, newConnector);
         const savedConnector = { id: connectorRef.id, ...newConnector };
+
+        setLearningProgress(100);
+        setLearningStatus("¡Entrenamiento finalizado!");
+
         toast.removeToast(learningToastId);
         toast.success(`Conector para ${nombre} aprendido y sincronizado con éxito.`, "IA Aprendizaje Exitoso");
         return savedConnector;
@@ -492,6 +728,40 @@ export default function App() {
         handleFirestoreError(dbErr, OperationType.CREATE, pathConnectorWrite);
       }
     } catch (error: any) {
+      clearInterval(progressInterval);
+
+      const isManualAbort = error.name === "AbortError" || error.message?.includes("aborted");
+      const errorMsg = isManualAbort ? "Entrenamiento cancelado por el usuario." : (error.message || "Error de red o timeout.");
+
+      // Save failed or cancelled training record to Firestore as requested
+      try {
+        const failedConnectorRecord = {
+          userId: activeUserId,
+          nombre: nombre.toUpperCase(),
+          rfc: rfc || "RFC_INFERIDO",
+          portalUrl: "https://facturacion.sat.gob.mx/",
+          fieldsJson: "{}",
+          flowJson: "{}",
+          createdAt: new Date().toISOString(),
+          cost: learnedFrom === "portal_admin" ? 10.00 : 7.50,
+          rawCost: 0,
+          learnedFrom: learnedFrom,
+          failed: true,
+          errorMsg: errorMsg
+        };
+        const connectorRef = doc(collection(db, "connectors"));
+        await setDoc(connectorRef, failedConnectorRecord);
+      } catch (dbErr) {
+        console.error("No se pudo persistir el registro de aprendizaje fallido:", dbErr);
+      }
+
+      if (isManualAbort) {
+        console.log("Portal learning aborted by user.");
+        toast.removeToast(learningToastId);
+        toast.info("Mapeado de portal IA cancelado por el usuario.", "Entrenamiento Cancelado");
+        throw new Error("PROCESO_CANCELADO_POR_USUARIO");
+      }
+
       toast.removeToast(learningToastId);
       toast.error(error.message || "No se pudo aprender el conector.", "Error de Aprendizaje IA");
       if (error && typeof error.message === "string" && error.message.includes('{"error"')) {
@@ -499,13 +769,19 @@ export default function App() {
       }
       throw new Error("Connector learn error: " + error.message);
     } finally {
+      clearInterval(progressInterval);
       setIsLearningLoading(false);
+      setLearningProgress(0);
+      setLearningStatus("");
+      setLearningCompany("");
+      abortControllerRef.current = null;
     }
+    return {} as Connector;
   };
 
   // Active connector learn from connector manager tab
-  const handleConnectorLearning = async (nombre: string, rfc: string) => {
-    await handleLearnConnectorInline(nombre, rfc);
+  const handleConnectorLearning = async (nombre: string, rfc: string, tokenSaver?: boolean) => {
+    await handleLearnConnectorInline(nombre, rfc, "portal_admin", tokenSaver);
   };
 
   // Automated background processing and learning flow:
@@ -541,8 +817,31 @@ export default function App() {
           c.nombre.toLowerCase().includes((ticket.nombreEmisor || "").toLowerCase())
       );
 
+      let usedNewConnector = false;
       // Automatic Learning Feedforward loop: If no connector exists, learn it on-the-fly!
       if (!currentConnector) {
+        usedNewConnector = true;
+
+        // --- CORE IA LEARNING BUDGET LOCK CHECK ---
+        const estimatedLearningCost = 15.00; // Standard learning cost per new portal
+        if (estimatedLearningCost > learningBudgetLimit && !ticket.learningApprovedByAdmin) {
+          console.warn(`[Budget Lock] Estimated learning cost ($${estimatedLearningCost.toFixed(2)}) exceeds tope ($${learningBudgetLimit.toFixed(2)}). Escalating ticket ID: ${ticketIdToAutomate} to Admin Review.`);
+          
+          await handleUpdateTicket(ticketIdToAutomate, {
+            status: "review",
+            errorMsg: `El costo de aprendizaje estimado para mapear el nuevo portal ($${estimatedLearningCost.toFixed(2)} MXN) supera el tope de costo límite de $${learningBudgetLimit.toFixed(2)} MXN establecido por la administración.`
+          });
+
+          if (submissionToastId) toast.removeToast(submissionToastId);
+          toast.removeToast(automationToastId);
+          
+          toast.warning(
+            `El costo de aprendizaje de IA para ${nombreEmisor} supera el tope administrativo de $${learningBudgetLimit.toFixed(2)} MXN. Se ha bloqueado y enviado al Administrador para su resolución.`,
+            "Petición Retenida"
+          );
+          return;
+        }
+
         console.log("Automatically learning connector specs via AI Search Grounding proxy...");
         toast.info(`Buscando conector para ${nombreEmisor}. Iniciando aprendizaje IA...`, "Búsqueda de Conector");
         currentConnector = await handleLearnConnectorInline(ticket.nombreEmisor || "Desconocido", ticket.rfcEmisor || "XAXX010101000");
@@ -556,9 +855,13 @@ export default function App() {
       );
 
       // 4. Fire Playwright server-side automation simulator API
+      const runHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (fiscalProfile?.personalGeminiKey) {
+        runHeaders["x-gemini-api-key"] = fiscalProfile.personalGeminiKey;
+      }
       const response = await fetch("/api/automation/run", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: runHeaders,
         body: JSON.stringify({
           ticket: {
             rfcEmisor: ticket.rfcEmisor || "XAXX010101000",
@@ -570,7 +873,7 @@ export default function App() {
             items: ticket.itemsJson ? JSON.parse(ticket.itemsJson) : [],
           },
           profile: fiscalProfile || {
-            rfc: "XAXX010101000",
+            rfc: "XAXX010101500",
             razonSocial: "PÚBLICO EN GENERAL",
             regimenFiscal: "601",
             codigoPostal: "01000",
@@ -594,7 +897,10 @@ export default function App() {
         invoiceData.folioFiscal,
         ticket.rfcEmisor || "XAXX010101000",
         ticket.nombreEmisor || "EMISOR AUTOMATICO",
-        ticket.total || 0
+        ticket.total || 0,
+        invoiceData.cost !== undefined ? invoiceData.cost : (usedNewConnector ? 15.00 : 0.25),
+        usedNewConnector ? "nuevo" : "existente",
+        invoiceData.rawCost !== undefined ? invoiceData.rawCost : 0
       );
 
       // 6. Complete and save reference ids to shift lists automatically
@@ -930,6 +1236,14 @@ export default function App() {
                   onForceReSeed={handleForceReSeedConnectors}
                   onLearnConnector={handleConnectorLearning}
                   isLearningLoading={isLearningLoading}
+                  learningStatus={learningStatus}
+                  learningProgress={learningProgress}
+                  onCancelLearning={handleCancelLearning}
+                  learningCompany={learningCompany}
+                  learningBudgetLimit={learningBudgetLimit}
+                  onUpdateLearningBudgetLimit={handleUpdateLearningBudgetLimit}
+                  onUpdateTicket={handleUpdateTicket}
+                  onStartTicketAutomation={handleStartTicketAutomation}
                 />
               )}
             </div>
@@ -1066,41 +1380,250 @@ export default function App() {
         </header>
 
         {/* Login Central Card */}
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-12 flex flex-col justify-center items-center">
-          <div className="w-full max-w-xl bg-white border border-slate-200 rounded-3xl p-8 md:p-12 flex flex-col justify-center items-center text-center relative overflow-hidden shadow-lg">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-10 flex flex-col justify-center items-center">
+          <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-3xl p-6 md:p-10 flex flex-col items-center relative overflow-hidden shadow-lg">
             {/* Premium backdrop radial glow block */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-12 opacity-5 pointer-events-none">
               <div className="w-96 h-96 border-[25px] border-indigo-500 rounded-full blur-3xl" />
             </div>
 
-            <div className="relative z-10 space-y-6 max-w-xl animate-fade-in_50">
-              <div className="w-16 h-16 bg-gradient-to-br from-[#0B53F4] to-blue-600 shadow-xl shadow-[#0B53F4]/15 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 scale-110">
-                <ShieldCheck className="w-9 h-9" />
+            <div className="relative z-10 w-full flex flex-col items-center space-y-6">
+              <div className="w-14 h-14 bg-gradient-to-br from-[#0B53F4] to-blue-600 shadow-xl shadow-[#0B53F4]/15 text-white rounded-2xl flex items-center justify-center scale-105">
+                <ShieldCheck className="w-8 h-8" />
               </div>
               
-              <h2 className="text-3xl font-black tracking-tight text-slate-900 font-sans uppercase">
-                Acceso a ZenTicket
-              </h2>
-              <p className="text-sm text-slate-500 leading-relaxed font-sans max-w-md mx-auto">
-                Automatización de facturas comerciales del SAT. Extrae datos por visión profunda de Gemini e inyecta la información en portales de los emisores de forma 100% digital.
-              </p>
-
-              <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center w-full max-w-md mx-auto">
-                <button
-                  onClick={handleEnterSandbox}
-                  className="w-full text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 py-3.5 rounded-xl transition duration-150 active:scale-[0.98] shadow-sm bg-transparent"
-                >
-                  Explorar en Sandbox
-                </button>
-
-                <button
-                  onClick={handleGoogleLogin}
-                  className="w-full flex items-center justify-center gap-2 text-xs text-white font-bold bg-[#0B53F4] hover:bg-[#0B53F4]/90 py-3.5 rounded-xl transition duration-150 shadow-md shadow-[#0B53F4]/15 active:scale-[0.98]"
-                >
-                  <LogIn className="w-4 h-4 shrink-0" />
-                  Ingresar con Google
-                </button>
+              <div className="text-center">
+                <h2 className="text-2xl font-black tracking-tight text-slate-900 font-sans uppercase">
+                  {authFormMode === "login" ? "Acceso a ZenTicket" : "Crear Cuenta"}
+                </h2>
+                <p className="text-xs text-slate-500 leading-relaxed font-sans max-w-md mx-auto mt-1">
+                  {authFormMode === "login" 
+                    ? "Automatización inteligente de facturación CFDI v4.0. Extrae parámetros de tickets con IA."
+                    : "Crea tu cuenta de acceso rápido de ZenTicket para comenzar a gestionar tus facturas."}
+                </p>
               </div>
+
+              {verificationEmailSentTo && (
+                <div className="w-full max-w-md bg-blue-50/80 border border-blue-100 rounded-3xl p-5 text-left space-y-3 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0">
+                      <Mail className="w-5 h-5 animate-bounce" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">Confirma tu Correo</h4>
+                      <span className="text-[10px] text-slate-500 font-medium block">
+                        Email de verificación enviado
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                    Hemos enviado un enlace de confirmación a <strong className="text-slate-900">{verificationEmailSentTo}</strong>. Por favor, revisa tu casilla (y tu bandeja de spam) para verificar que es tu correo y continuar.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setVerificationEmailSentTo(null)}
+                    className="w-full bg-[#0B53F4] text-white text-xs font-extrabold py-3 rounded-2xl cursor-pointer hover:opacity-95 transition text-center"
+                  >
+                    Entendido, ir a Iniciar Sesión
+                  </button>
+                </div>
+              )}
+
+              {authError && (
+                <div className="w-full max-w-lg bg-rose-50 text-rose-700 p-3.5 rounded-2xl border border-rose-100/80 flex items-center gap-2 text-xs font-semibold text-left">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
+              {authFormMode === "login" ? (
+                /* INICIAR SESIÓN FORM WITH EMAIL/PASSWORD & OAUTH */
+                <div className="w-full max-w-md space-y-5 text-left">
+                  <form onSubmit={handleManualSignIn} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                        Correo Electrónico
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="email"
+                          required
+                          value={authEmail}
+                          onChange={(e) => setAuthEmail(e.target.value)}
+                          placeholder="tu@correo.com"
+                          className="w-full text-xs font-medium bg-[#F8F9FE] border border-slate-200/70 focus:border-[#0B53F4] rounded-2xl pl-11 pr-4 py-3 text-slate-850 focus:outline-none transition-all placeholder-slate-400"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                        Contraseña
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="password"
+                          required
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                          className="w-full text-xs font-medium bg-[#F8F9FE] border border-slate-200/70 focus:border-[#0B53F4] rounded-2xl pl-11 pr-4 py-3 text-slate-850 focus:outline-none transition-all placeholder-slate-400"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="w-full flex items-center justify-center gap-2 text-xs text-white font-extrabold bg-[#0B53F4] hover:bg-[#0B53F4]/95 py-3.5 rounded-2xl transition duration-150 shadow-md shadow-[#0B53F4]/10 active:scale-[0.98] cursor-pointer"
+                    >
+                      {authLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Ingresando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="w-4 h-4 shrink-0" />
+                          <span>Ingresar de Forma Segura</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+
+                  {/* BOTTOM LINK TO SIGNUP */}
+                  <div className="text-center py-1">
+                    <span className="text-xs text-slate-500 font-medium select-none">¿No tienes una cuenta aún? </span>
+                    <button
+                      type="button"
+                      onClick={() => { setAuthFormMode("signup"); setAuthError(""); setVerificationEmailSentTo(null); }}
+                      className="text-xs text-[#0B53F4] font-extrabold hover:underline cursor-pointer"
+                    >
+                      Crear cuenta
+                    </button>
+                  </div>
+
+                  {/* Divider line */}
+                  <div className="relative flex py-2 items-center">
+                    <div className="flex-grow border-t border-slate-200/80"></div>
+                    <span className="flex-shrink mx-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Otras Vías de Acceso</span>
+                    <div className="flex-grow border-t border-slate-200/80"></div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleGoogleLogin}
+                      className="flex items-center justify-center gap-1.5 text-[11px] font-extrabold text-slate-700 bg-white border border-slate-200 hover:border-slate-300 py-3 rounded-2xl transition active:scale-[0.98] cursor-pointer shadow-xs"
+                    >
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                        <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.65 1.39 7.56l3.85 2.99c.9-2.73 3.45-4.51 6.76-4.51z"/>
+                        <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.73 2.89c2.18-2 3.7-4.98 3.7-8.62z"/>
+                        <path fill="#FBBC05" d="M5.24 14.45c-.23-.69-.37-1.42-.37-2.18s.14-1.49.37-2.18L1.39 7.1C.5 8.9 0 10.9 0 13s.5 4.1 1.39 5.9l3.85-2.45z"/>
+                        <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.73-2.89c-1.1.74-2.51 1.18-4.23 1.18-3.31 0-5.86-1.78-6.76-4.51L1.39 16.3C3.37 20.35 7.35 23 12 23z"/>
+                      </svg>
+                      <span>Google Login</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleEnterSandbox}
+                      className="flex items-center justify-center gap-1.5 text-[11px] font-extrabold text-slate-700 bg-slate-50 border border-slate-200/80 hover:bg-slate-100 py-3 rounded-2xl transition active:scale-[0.98] cursor-pointer"
+                    >
+                      <PlayCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>Modo Sandbox</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* CREAR CUENTA FORM - EMAILS & PASSWORDS ONLY */
+                <div className="w-full max-w-md space-y-5 text-left">
+                  <form onSubmit={handleManualSignUp} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                        Correo Electrónico
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="email"
+                          required
+                          value={authEmail}
+                          onChange={(e) => setAuthEmail(e.target.value)}
+                          placeholder="tu@correo.com"
+                          className="w-full text-xs font-semibold bg-[#F8F9FE] border border-slate-200/70 focus:border-[#0B53F4] rounded-2xl pl-11 pr-4 py-3 text-slate-800 focus:outline-none transition-all placeholder-slate-400"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                        Contraseña (Mínimo 6 caracteres)
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="password"
+                          required
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          placeholder="Ingresa clave segura"
+                          className="w-full text-xs font-semibold bg-[#F8F9FE] border border-slate-200/70 focus:border-[#0B53F4] rounded-2xl pl-11 pr-4 py-3 text-slate-800 focus:outline-none transition-all placeholder-slate-400"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                        Confirmar Contraseña
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="password"
+                          required
+                          value={authConfirmPassword}
+                          onChange={(e) => setAuthConfirmPassword(e.target.value)}
+                          placeholder="Confirma tu contraseña"
+                          className="w-full text-xs font-semibold bg-[#F8F9FE] border border-slate-200/70 focus:border-[#0B53F4] rounded-2xl pl-11 pr-4 py-3 text-slate-800 focus:outline-none transition-all placeholder-slate-400"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="w-full flex items-center justify-center gap-2 text-xs text-white font-extrabold bg-[#0B53F4] hover:bg-[#0B53F4]/95 py-3.5 rounded-2xl transition duration-150 shadow-md shadow-[#0B53F4]/10 active:scale-[0.98] cursor-pointer"
+                    >
+                      {authLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-white" />
+                          <span>Enviando correo de verificación...</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4 shrink-0" />
+                          <span>Crear Cuenta</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+
+                  {/* BOTTOM LINK TO LOGIN */}
+                  <div className="text-center py-1">
+                    <span className="text-xs text-slate-500 font-medium select-none">¿Ya tienes una cuenta? </span>
+                    <button
+                      type="button"
+                      onClick={() => { setAuthFormMode("login"); setAuthError(""); setVerificationEmailSentTo(null); }}
+                      className="text-xs text-[#0B53F4] font-extrabold hover:underline cursor-pointer"
+                    >
+                      Iniciar sesión aquí
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </main>

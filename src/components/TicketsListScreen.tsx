@@ -1605,11 +1605,38 @@ export default function TicketsListScreen({
                       </div>
                     </div>
 
-                    {/* Highly polished active yellow state indicator badge */}
-                    <span className="bg-[#FEF3C7] text-[#D97706] text-[9.5px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 leading-none">
-                      PROCESANDO
-                    </span>
+                    {/* Highly polished active status state indicator badge */}
+                    {t.status === "review" ? (
+                      <span className="bg-amber-100 text-amber-700 text-[9.5px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 leading-none">
+                        REVISIÓN ADMIN
+                      </span>
+                    ) : isFailed ? (
+                      <span className="bg-rose-100 text-rose-700 text-[9.5px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 leading-none">
+                        FALLIDO
+                      </span>
+                    ) : (
+                      <span className="bg-[#FEF3C7] text-[#D97706] text-[9.5px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 leading-none">
+                        PROCESANDO
+                      </span>
+                    )}
                   </div>
+
+                  {/* Escalation/Failure Reason Card Block */}
+                  {(t.status === "review" || isFailed) && t.errorMsg && (
+                    <div className={`text-[11px] p-3 rounded-2xl leading-relaxed font-sans ${
+                      t.status === "review" ? "bg-amber-500/10 text-amber-900 border border-amber-200/45" : "bg-rose-50 text-rose-800 border border-rose-100/60"
+                    }`}>
+                      <span className="font-bold block uppercase text-[9px] mb-1 tracking-wider">
+                        {t.status === "review" ? "Límite de Presupuesto Excedido:" : "Error de Automatización:"}
+                      </span>
+                      {t.errorMsg}
+                      {t.status === "review" && (
+                        <p className="text-[10px] text-amber-600 font-semibold mt-1 leading-normal">
+                          El conector requiere aprendizaje, pero supera el tope configurado de costo. El Administrador ya recibió la solicitud en su bandeja de alertas.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Divider line Inside Card */}
                   <div className="border-t border-slate-100 my-0.5" />

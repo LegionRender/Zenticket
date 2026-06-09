@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Connector, ConnectorField } from "../types";
 import { 
   Link2, Search, Cpu, CheckCircle, Database, HelpCircle, Loader2, X, 
-  Layers, Coffee, Utensils, Car, Home, ShoppingBag, ArrowRight
+  Layers, Coffee, Utensils, Car, Home, ShoppingBag, ArrowRight, ChevronDown
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -95,6 +95,27 @@ export default function ConnectorsList({ connectors, onLearnConnector, isLoading
   const [newRfc, setNewRfc] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   
+  // Manage expanded state for each connector by id/name
+  const [expandedConnectors, setExpandedConnectors] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedConnectors((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const formatGenerationDate = (dateStr?: string) => {
+    if (!dateStr) return "08/06/2026";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "08/06/2026";
+      return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
+    } catch {
+      return "08/06/2026";
+    }
+  };
+  
   // Modal layout states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalSearchQuery, setModalSearchQuery] = useState("");
@@ -122,6 +143,10 @@ export default function ConnectorsList({ connectors, onLearnConnector, isLoading
       setNewNombre("");
       setNewRfc("");
     } catch (err: any) {
+      if (err.message === "PROCESO_CANCELADO_POR_USUARIO") {
+        setMessage(null);
+        return;
+      }
       setMessage({ type: "error", text: err.message || "Error al aprender el portal." });
     }
   };
@@ -280,65 +305,109 @@ export default function ConnectorsList({ connectors, onLearnConnector, isLoading
               const fields: ConnectorField[] = JSON.parse(connector.fieldsJson);
               const steps: string[] = JSON.parse(connector.flowJson);
               const category = getConnectorCategory(connector.nombre);
+              const connectorId = connector.id || connector.nombre;
+              const isExpanded = !!expandedConnectors[connectorId];
 
               return (
                 <div
                   key={connector.id}
-                  className="bg-white border border-slate-100 rounded-2xl p-4.5 shadow-2xs hover:border-[#0B53F4]/10 transition-all duration-150 text-left relative overflow-hidden"
+                  className="bg-white border border-slate-150/70 rounded-2xl shadow-3xs hover:border-[#0B53F4]/20 transition-all duration-150 text-left relative overflow-hidden"
                 >
-                  <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2 mb-3.5">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-extrabold text-slate-900 text-[13.5px]">
+                  {/* Clickable Header */}
+                  <div 
+                    onClick={() => toggleExpand(connectorId)}
+                    className="p-4 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-slate-50/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      {/* Icon */}
+                      <div className="w-10 h-10 rounded-xl bg-slate-50/90 border border-slate-100 flex items-center justify-center shrink-0">
+                        {getCategoryIcon(category)}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-extrabold text-slate-900 text-sm truncate leading-tight">
                           {connector.nombre}
                         </h4>
-                        
-                        {/* Dynamic Category Pill Badge */}
-                        <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-[9px] font-extrabold tracking-wide uppercase ${getCategoryStyles(category)}`}>
-                          {getCategoryIcon(category)}
-                          <span>{category}</span>
+                        <span className="text-[10px] text-slate-400 font-mono mt-0.5 block leading-none">
+                          📅 Generado: {formatGenerationDate(connector.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <a
+                        href={connector.portalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[10.5px] bg-[#EBF1FF]/60 hover:bg-[#EBF1FF] text-[#0B53F4] px-2.5 py-1.5 rounded-lg flex items-center gap-1 font-black transition-colors border border-[#0B53F4]/5"
+                      >
+                        <Link2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Visitar</span>
+                      </a>
+
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        className="text-slate-400 p-0.5"
+                      >
+                        <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  {/* Expandable data container */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.22, ease: "easeOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-4.5 pb-4.5 pt-3 border-t border-slate-100 bg-slate-50/15 space-y-4">
+                          <div className="flex gap-2 flex-wrap items-center">
+                            <span className="text-[10px] bg-slate-100 text-slate-655 px-2.5 py-1 rounded-md font-mono font-bold">
+                              RFC Emisor: {connector.rfc || "N/A"}
+                            </span>
+                            <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded-lg border text-[9px] font-extrabold tracking-wide uppercase ${getCategoryStyles(category)}`}>
+                              {getCategoryIcon(category)}
+                              <span>{category}</span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <h5 className="text-[9px] font-black text-slate-400 mb-1.5 uppercase tracking-wider font-mono">
+                                Campos requeridos
+                              </h5>
+                              <div className="flex flex-wrap gap-1">
+                                {fields.map((field) => (
+                                  <span
+                                    key={field.key}
+                                    className="bg-white border border-slate-100 text-[9.5px] text-slate-705 px-2 py-1 rounded-md font-mono shadow-4xs"
+                                  >
+                                    {field.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <h5 className="text-[9px] font-black text-slate-400 mb-1.5 uppercase tracking-wider font-mono font-bold">
+                                Flujo automático de automatización
+                              </h5>
+                              <ol className="text-[10px] text-slate-600 list-decimal pl-4.5 space-y-1 font-medium font-sans">
+                                {steps.map((step, idx) => (
+                                  <li key={idx} className="pl-0.5">{step}</li>
+                                ))}
+                              </ol>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <p className="text-[9.5px] text-slate-400 font-mono mt-1 font-bold">RFC: {connector.rfc}</p>
-                    </div>
-
-                    <a
-                      href={connector.portalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10.5px] text-[#0B53F4] hover:text-blue-600 flex items-center gap-1 font-black shrink-0 transition-colors"
-                    >
-                      <Link2 className="w-3.5 h-3.5 shrink-0" />
-                      Visitar Portal
-                    </a>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-3 border-t border-slate-100">
-                    <div>
-                      <h5 className="text-[9px] font-black text-slate-400 mb-1.5 uppercase tracking-wider font-mono">
-                        Campos requeridos
-                      </h5>
-                      <div className="flex flex-wrap gap-1">
-                        {fields.map((field) => (
-                          <span
-                            key={field.key}
-                            className="bg-slate-50 border border-slate-100 text-[9.5px] text-slate-705 px-2 py-1 rounded-md font-mono"
-                          >
-                            {field.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h5 className="text-[9px] font-black text-slate-400 mb-1.5 uppercase tracking-wider font-mono">
-                        Flujo automático
-                      </h5>
-                      <span className="text-[10px] text-slate-500 line-clamp-1 italic font-medium">
-                        {steps[0] || "Validando login de portal..."}
-                      </span>
-                    </div>
-                  </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })}
@@ -457,72 +526,118 @@ export default function ConnectorsList({ connectors, onLearnConnector, isLoading
                     const fields: ConnectorField[] = JSON.parse(connector.fieldsJson);
                     const steps: string[] = JSON.parse(connector.flowJson);
                     const category = getConnectorCategory(connector.nombre);
+                    const connectorId = `modal-${connector.id || connector.nombre}`;
+                    const isExpanded = !!expandedConnectors[connectorId];
 
                     return (
                       <div
                         key={connector.id}
-                        className="bg-white border border-slate-200/60 rounded-2.5xl p-5 hover:border-[#0B53F4]/20 transition-all shadow-4xs"
+                        className="bg-white border border-slate-200/60 rounded-2.5xl shadow-4xs hover:border-[#0B53F4]/20 transition-all duration-150 overflow-hidden text-left"
                       >
-                        <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2.5 mb-4">
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="font-extrabold text-slate-900 text-sm">
+                        {/* Interactive header block */}
+                        <div 
+                          onClick={() => toggleExpand(connectorId)}
+                          className="p-5 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-slate-50/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            {/* Icon circular badge */}
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-slate-150/60 bg-slate-50 shadow-4xs">
+                              {getCategoryIcon(category)}
+                            </div>
+
+                            <div className="min-w-0">
+                              <h4 className="font-extrabold text-[#0E1629] text-[14.5px] truncate leading-tight">
                                 {connector.nombre}
                               </h4>
-                              
-                              <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded-lg border text-[9px] font-extrabold tracking-wide uppercase ${getCategoryStyles(category)}`}>
-                                {getCategoryIcon(category)}
-                                <span>{category}</span>
-                              </div>
+                              <span className="text-[10px] text-slate-400 font-mono mt-0.5 block leading-none">
+                                📅 Generación: {formatGenerationDate(connector.createdAt)}
+                              </span>
                             </div>
-                            <p className="text-[10px] text-slate-450 font-mono mt-1 font-bold">RFC: {connector.rfc}</p>
                           </div>
 
-                          <a
-                            href={connector.portalUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-[#0B53F4] hover:text-blue-600 flex items-center gap-1 font-black shrink-0 transition-colors"
-                          >
-                            <Link2 className="w-3.5 h-3.5 shrink-0" />
-                            Visitar Portal Autorizado
-                          </a>
+                          <div className="flex items-center gap-3 shrink-0">
+                            {/* External visit link */}
+                            <a
+                              href={connector.portalUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-xs bg-[#EBF1FF]/60 hover:bg-[#EBF1FF] text-[#0B53F4] px-3 py-1.5 rounded-lg flex items-center gap-1 font-black transition-colors border border-[#0B53F4]/5"
+                            >
+                              <Link2 className="w-3.5 h-3.5 shrink-0" />
+                              <span>Visitar Portal</span>
+                            </a>
+
+                            {/* Chevron indicating expandable action */}
+                            <motion.div
+                              animate={{ rotate: isExpanded ? 180 : 0 }}
+                              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                              className="text-slate-400 p-0.5"
+                            >
+                              <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                            </motion.div>
+                          </div>
                         </div>
 
-                        {/* Fields & Instructions parameters */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3.5 border-t border-slate-100">
-                          <div>
-                            <h5 className="text-[9.5px] font-black text-slate-400 mb-2 uppercase tracking-wider font-mono">
-                              Campos requeridos en formulario
-                            </h5>
-                            
-                            <div className="flex flex-wrap gap-1.5">
-                              {fields.map((f) => (
-                                <div
-                                  key={f.key}
-                                  className="text-[9.5px] bg-[#FAF9FE] border border-slate-100 px-2 py-1.5 rounded-lg flex flex-col font-mono"
-                                >
-                                  <span className="font-bold text-[#0B53F4]">{f.name}</span>
-                                  <span className="text-[8px] text-slate-400 block truncate max-w-[170px] mt-0.5">
-                                    Selector: {f.selector}
+                        {/* Expandable detail section with elegant content cards */}
+                        <AnimatePresence initial={false}>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.22, ease: "easeOut" }}
+                              className="overflow-hidden"
+                            >
+                              <div className="px-5 pb-5 pt-3.5 border-t border-slate-150/60 bg-slate-50/15 space-y-4">
+                                <div className="flex gap-2 flex-wrap items-center">
+                                  {/* RFC ID */}
+                                  <span className="text-[10px] bg-slate-100 text-slate-655 px-2.5 py-1 rounded-md font-mono font-bold">
+                                    RFC Emisor: {connector.rfc || "N/A"}
                                   </span>
+
+                                  {/* Category code */}
+                                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[9px] font-extrabold tracking-wide uppercase ${getCategoryStyles(category)}`}>
+                                    {getCategoryIcon(category)}
+                                    <span>{category}</span>
+                                  </div>
                                 </div>
-                              ))}
-                            </div>
-                          </div>
 
-                          <div>
-                            <h5 className="text-[9.5px] font-black text-slate-400 mb-2 uppercase tracking-wider font-mono">
-                              Flujo de automatización Playwright
-                            </h5>
-                            <ol className="text-[10px] text-slate-600 list-decimal pl-4.5 space-y-1.5 leading-relaxed font-sans font-medium">
-                              {steps.map((s, idx) => (
-                                <li key={idx} className="pl-0.5">{s}</li>
-                              ))}
-                            </ol>
-                          </div>
-                        </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <h5 className="text-[9.5px] font-black text-slate-400 mb-2 uppercase tracking-wider font-mono">
+                                      Campos requeridos en formulario
+                                    </h5>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {fields.map((f) => (
+                                        <div
+                                          key={f.key}
+                                          className="text-[9.5px] bg-[#FAF9FE] border border-slate-105 px-2 py-1.5 rounded-lg flex flex-col font-mono shadow-3xs"
+                                        >
+                                          <span className="font-bold text-[#0B53F4]">{f.name}</span>
+                                          <span className="text-[8px] text-slate-400 block truncate max-w-[170px] mt-0.5">
+                                            Selector: {f.selector}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
 
+                                  <div>
+                                    <h5 className="text-[9.5px] font-black text-slate-400 mb-2 uppercase tracking-wider font-mono font-bold">
+                                      Flujo de automatización Playwright/SAT
+                                    </h5>
+                                    <ol className="text-[10px] text-slate-600 list-decimal pl-4.5 space-y-1.5 leading-relaxed font-sans font-medium">
+                                      {steps.map((s, idx) => (
+                                        <li key={idx} className="pl-0.5">{s}</li>
+                                      ))}
+                                    </ol>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     );
                   })

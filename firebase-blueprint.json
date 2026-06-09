@@ -49,7 +49,9 @@
         "portalUrl": { "type": "string" },
         "fieldsJson": { "type": "string", "description": "JSON serialized array of fields with selectors" },
         "flowJson": { "type": "string", "description": "JSON serialized string array of step guides" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "cost": { "type": "number", "description": "Cost of learning this connector in MXN" },
+        "learnedFrom": { "type": "string", "enum": ["automatizacion_ticket", "portal_admin"], "description": "Whether it was learned inline from ticket automation or from the admin portal" }
       },
       "required": ["nombre", "rfc", "portalUrl", "fieldsJson", "flowJson", "createdAt"]
     },
@@ -68,7 +70,9 @@
         "total": { "type": "number" },
         "xmlContent": { "type": "string" },
         "pdfHtml": { "type": "string", "description": "Visual PDF schema rendering" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "cost": { "type": "number", "description": "Cost of generating the invoice" },
+        "connectorType": { "type": "string", "enum": ["existente", "nuevo"], "description": "Whether an existing or new connector was used" }
       },
       "required": ["userId", "ticketId", "folioFiscal", "rfcEmisor", "nombreEmisor", "rfcReceptor", "nombreReceptor", "total", "xmlContent", "createdAt"]
     }

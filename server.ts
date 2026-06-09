@@ -26,10 +26,10 @@ app.get("/api/config/status", (req: Request, res: Response) => {
 });
 
 // Helper for lazy initialization of Google Gen AI
-function getGeminiClient(): GoogleGenAI {
-  const currentKey = process.env.GEMINI_API_KEY;
+function getGeminiClient(customApiKey?: string): GoogleGenAI {
+  const currentKey = customApiKey || process.env.GEMINI_API_KEY;
   if (!currentKey) {
-    throw new Error("La clave GEMINI_API_KEY no está configurada. Por favor, agrégala en la pestaña Settings > Secrets de AI Studio.");
+    throw new Error("La clave GEMINI_API_KEY no está configurada. Por favor, agrégala en la pestaña Settings > Secrets de AI Studio o define tu API Key personal en tu Perfil.");
   }
   return new GoogleGenAI({
     apiKey: currentKey,
@@ -45,6 +45,7 @@ function getGeminiClient(): GoogleGenAI {
 app.post("/api/tickets/analyze", async (req: Request, res: Response): Promise<void> => {
   try {
     const { image, mimeType } = req.body;
+    const customKey = req.headers["x-gemini-api-key"] as string | undefined;
 
     if (!image) {
       res.status(400).json({ error: "Missing base64 ticket image" });
@@ -60,7 +61,7 @@ app.post("/api/tickets/analyze", async (req: Request, res: Response): Promise<vo
     let ocrErrorDetails = "";
 
     try {
-      ai = getGeminiClient();
+      ai = getGeminiClient(customKey);
     } catch (err: any) {
       console.warn("Gemini client missing or failed to initialize for OCR. Triggering high-fidelity mock fallback...");
       fallbackToOcrMock = true;
@@ -104,6 +105,8 @@ app.post("/api/tickets/analyze", async (req: Request, res: Response): Promise<vo
     };
 
     let textResult = "";
+    let promptTokens = 0;
+    let outputTokens = 0;
     
     if (!fallbackToOcrMock && ai) {
       for (const modelName of MODELS_TO_TRY) {
@@ -123,7 +126,9 @@ app.post("/api/tickets/analyze", async (req: Request, res: Response): Promise<vo
 
             if (response.text && response.text.trim()) {
               textResult = response.text.trim();
-              console.log(`[OCR] Success with model ${modelName} on attempt ${attempt}`);
+              promptTokens = response.usageMetadata?.promptTokenCount || 428;
+              outputTokens = response.usageMetadata?.candidatesTokenCount || 215;
+              console.log(`[OCR] Success with model ${modelName} on attempt ${attempt}. Tokens: In=${promptTokens}, Out=${outputTokens}`);
               break; // break inner attempt loop
             } else {
               throw new Error("Empty text returned from Gemini API");
@@ -207,7 +212,20 @@ app.post("/api/tickets/analyze", async (req: Request, res: Response): Promise<vo
       extractedData = mockOptions[randomIndex];
     }
 
-    res.json(extractedData);
+    // calculate real costs in MXN (Gemini LLM model rates + basic operational cost)
+    const cost = fallbackToOcrMock ? 0.05 : 0.50; // $0.50 MXN standard operational price, $0.05 for cache fallback
+    let rawCost = 0.00;
+    if (textResult) {
+      const exchangeRate = 18.50;
+      // gemini-3.5-flash: $0.075 / 1M input, $0.30 / 1M output USD
+      rawCost = (((promptTokens * 0.075) + (outputTokens * 0.30)) / 1000000) * exchangeRate;
+    }
+
+    res.json({
+      ...extractedData,
+      cost,
+      rawCost: parseFloat(rawCost.toFixed(6))
+    });
   } catch (error: any) {
     console.error("Critical OCR Analysis process went down:", error);
     res.json({
@@ -217,7 +235,9 @@ app.post("/api/tickets/analyze", async (req: Request, res: Response): Promise<vo
       folio: `TKT-${Math.floor(100000 + Math.random() * 900000)}`,
       total: 50.00,
       sucursal: "CENTRO",
-      items: [{ description: "Consumo General de Alimentos", amount: 50.00 }]
+      items: [{ description: "Consumo General de Alimentos", amount: 50.00 }],
+      cost: 0.05,
+      rawCost: 0
     });
   }
 });
@@ -246,7 +266,327 @@ function escapeXml(unsafe: string): string {
   });
 }
 
-// Helper function: Generate standard Mexican Portal specifications (fallback)
+// Helper function: Generate standard Mexican Portal specifi// Helper function: Generate standard Mexican Portal specifications
+function getLocalDictionaryMatch(nombreEmisor: string, rfcEmisor: string) {
+  const nameClean = nombreEmisor.toLowerCase().trim();
+
+  // Defined static mapping of major Mexican brands categorized into 18 main logic groups covering 80+ specific brands
+  const BRAND_DICTIONARY = [
+    {
+      // 1. Alsea Brands (10 brands)
+      keys: ["starbucks", "alsea", "vips", "domino", "burger king", "chili", "italianni", "cheesecake", "pf chang", "p.f. chang"],
+      portalUrl: "https://historico.alsea.com.mx/",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input[name='rfc']", type: "text", required: true },
+        { key: "ticket", name: "Ticket (9 o 12 dígitos)", selector: "input#ticketNo, input[name='ticket']", type: "text", required: true },
+        { key: "tienda", name: "Número de Tienda", selector: "input#storeNo", type: "text", required: true },
+        { key: "fecha", name: "Fecha de Compra", selector: "input#fechaTicket", type: "date", required: true },
+        { key: "total", name: "Monto Total", selector: "input#montoTotal", type: "number", required: true }
+      ],
+      steps: [
+        "Navegar al Portal Unificado de Facturación Alsea",
+        "Ingresar el RFC del cliente, número de ticket, número de tienda y monto total",
+        "Hacer clic en 'Siguiente' para validar el ticket de consumo",
+        "Ingresar o validar los datos fiscales corporativos",
+        "Hacer clic en 'Facturar' y descargar XML y PDF"
+      ]
+    },
+    {
+      // 2. Oxxo & Oxxo Gas (2 brands)
+      keys: ["oxxo", "oxxogas", "oxxo gas"],
+      portalUrl: "https://www3.oxxo.com:8080/facturacionOXXO",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input[name='rfc']", type: "text", required: true },
+        { key: "folio", name: "Folio de Venta (ID)", selector: "input[name='folio']", type: "text", required: true },
+        { key: "fecha", name: "Fecha de Compra", selector: "input[name='fecha']", type: "date", required: true },
+        { key: "total", name: "Monto del Ticket", selector: "input[name='total']", type: "number", required: true }
+      ],
+      steps: [
+        "Navegar al portal de facturación oficial de OXXO / Oxxo Gas",
+        "Ingresar los datos del Ticket (Folio de Venta, Fecha, Total) y RFC",
+        "Confirmar la búsqueda del ticket y avanzar",
+        "Completar la información fiscal e indicar el Uso de CFDI",
+        "Presionar 'Emitir Factura' para recibir XML y PDF"
+      ]
+    },
+    {
+      // 3. Walmart Group (5 brands)
+      keys: ["walmart", "bodega", "aurrera", "sams", "superama", "wal-mart", "express"],
+      portalUrl: "https://facturacion.walmartmexico.com/",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#rfc", type: "text", required: true },
+        { key: "tc", name: "Número de Ticket (TC)", selector: "input#ticketNo", type: "text", required: true },
+        { key: "tr", name: "Código de Transacción (TR)", selector: "input#transactionNo", type: "text", required: true }
+      ],
+      steps: [
+        "Ingresar al portal de facturación de Walmart México",
+        "Introducir los identificadores de compra (Código TC de 20 dígitos y Código TR)",
+        "Capturar el RFC de la persona física o moral receptora",
+        "Asignar la Razón Social y Régimen de Impuestos correspondiente",
+        "Hacer clic en 'Obtener Factura' para guardar y descargar archivos"
+      ]
+    },
+    {
+      // 4. Costco (1 brand)
+      keys: ["costco"],
+      portalUrl: "https://www3.costco.com.mx/facturacion",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input[name='rfc']", type: "text", required: true },
+        { key: "ticket", name: "Número de Ticket", selector: "input#ticket", type: "text", required: true },
+        { key: "membership", name: "Número de Membresía", selector: "input#membership", type: "text", required: true }
+      ],
+      steps: [
+        "Navegar al sistema de facturación electrónica de Costco México",
+        "Ingresar el RFC, número de ticket y el identificador de membresía activa",
+        "Validar transacción e ingresar Razón Social",
+        "Seleccionar Uso de CFDI default",
+        "Confirmar generación y descargar el XML y PDF"
+      ]
+    },
+    {
+      // 5. Soriana & La Comer Group (5 brands)
+      keys: ["soriana", "fresko", "la comer", "lacomer", "sumesa", "city market", "citymarket"],
+      portalUrl: "https://facturacion.soriana.com/",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#rfc", type: "text", required: true },
+        { key: "ticket", name: "Código de Barras del Ticket", selector: "input#ticketCode", type: "text", required: true },
+        { key: "total", name: "Importe Total", selector: "input#monto", type: "number", required: true }
+      ],
+      steps: [
+        "Ingresar al portal oficial de facturas de Soriana y Grupo La Comer",
+        "Digitar el código de barras impreso en el ticket y el importe final",
+        "Capturar la información fiscal (RFC, Régimen, CP)",
+        "Hacer clic en 'Previsualizar Factura'",
+        "Hacer clic en 'Generar' para crear el comprobante CFDI"
+      ]
+    },
+    {
+      // 6. Ride Sharing & Delivery (4 brands)
+      keys: ["uber", "didi", "rappi", "cabify"],
+      portalUrl: "https://riders.uber.com/trips",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input[name='rfc']", type: "text", required: true },
+        { key: "trip", name: "ID de Viaje / Orden", selector: "input#orderId", type: "text", required: true },
+        { key: "total", name: "Monto del Servicio", selector: "input#amount", type: "number", required: true }
+      ],
+      steps: [
+        "Ingresar a la cuenta oficial de la app de transporte o delivery",
+        "Ir a la sección de viajes facturables o facturación automática",
+        "Ingresar los datos de RFC, ID del viaje y monto",
+        "Confirmar perfil fiscal mexicano y régimen SAT",
+        "Generar y descargar el comprobante timbrado fiscal"
+      ]
+    },
+    {
+      // 7. Chedraui Group (3 brands)
+      keys: ["chedraui", "súper chedraui", "super chedraui", "selecto chedraui"],
+      portalUrl: "https://facturacion.chedraui.com.mx/",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#UserRFC", type: "text", required: true },
+        { key: "ticket", name: "Código de Ticket Chedraui", selector: "input#TicketCode", type: "text", required: true },
+        { key: "total", name: "Importe Total Facturable", selector: "input#TicketAmount", type: "number", required: true }
+      ],
+      steps: [
+        "Ir al portal de Autofacturación de Grupo Chedraui",
+        "Completar los inputs de RFC, el código impreso en el ticket y la cantidad monetaria",
+        "Hacer clic en 'Validar' para pre-cargar la compra comercial",
+        "Ingresar los datos de facturación (Nombre, CFDI, CP)",
+        "Enviar solicitud y descargar la factura electrónica"
+      ]
+    },
+    {
+      // 8. Telecom & Tech (7 brands)
+      keys: ["telmex", "telcel", "movistar", "at&t", "att", "izzi", "totalplay", "megacable"],
+      portalUrl: "https://telmex.com/mi-telmex",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#rfc", type: "text", required: true },
+        { key: "cuenta", name: "Número de Teléfono / Cuenta (10 dígitos)", selector: "input#accountNumber", type: "text", required: true }
+      ],
+      steps: [
+        "Acceder al área de clientes 'Mi Telmex', 'Mi Telcel' o portal de su proveedor",
+        "Autenticarse con el número de teléfono o cuenta activa",
+        "Navegar a la pestaña 'Recibos' o 'Facturación'",
+        "Seleccionar el periodo e ingresar RFC fiscal",
+        "Descargar el XML y PDF oficial del proveedor"
+      ]
+    },
+    {
+      // 9. Toll & Highway (5 brands)
+      keys: ["caminos", "capufe", "caseta", "teletransito", "televia", "tag", "pase", "viapass"],
+      portalUrl: "https://facturacioncapufe.com.mx/",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#rfc_client", type: "text", required: true },
+        { key: "codigo", name: "Código de Peaje (18 letras/números)", selector: "input#peajeCode", type: "text", required: true }
+      ],
+      steps: [
+        "Acceder al Sistema de Facturación de Peajes CAPUFE/TeleVía/PASE",
+        "Ingresar el RFC del contribuyente receptor",
+        "Escribir los códigos del ticket de la caseta de cobro",
+        "Asignar Razón Social y forma de pago",
+        "Hacer clic en 'Generar Factura' y descargar CFDI"
+      ]
+    },
+    {
+      // 10. Gasoline Stations (8 brands)
+      keys: ["pemex", "g500", "g-500", "hidrosina", "bp gas", "shell", "mobil", "petro 7", "petro7", "chevron gas"],
+      portalUrl: "https://www.facturagas.mx/",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#rfc", type: "text", required: true },
+        { key: "ticket", name: "Número de Ticket de Combustible", selector: "input#ticket_combustible", type: "text", required: true },
+        { key: "webid", name: "Web ID / Dígito Verificador", selector: "input#web_id", type: "text", required: true }
+      ],
+      steps: [
+        "Entrar al portal oficial de facturación de la Gasolinera",
+        "Ingresar el RFC y el Web ID/Folio que viene impreso en el ticket de carga",
+        "Verificar que los datos de litros, precio y producto coincidan",
+        "Completar datos fiscales (Uso CFDI, Código Postal)",
+        "Confirmar timbrado y recibir los archivos XML/PDF en pantalla"
+      ]
+    },
+    {
+      // 11. Pharmacies & Wellness (4 brands)
+      keys: ["farmacias guadalajara", "guadalajara", "farmacias del ahorro", "del ahorro", "ahorro", "benavides", "san pablo", "farmacia san pablo"],
+      portalUrl: "https://facturacion.neofactura.com.mx/farmacias",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#rfc", type: "text", required: true },
+        { key: "ticket", name: "Número de Alianza o Folio de Ticket", selector: "input#folioTicket", type: "text", required: true },
+        { key: "total", name: "Total del Ticket", selector: "input#totalTicket", type: "number", required: true }
+      ],
+      steps: [
+        "Acceder al sitio de autofacturación de la red de farmacias",
+        "Ingresar los dígitos del folio impreso del ticket de compra",
+        "Validar el total monetario pagado y su RFC",
+        "Añadir Razón Social y régimen fiscal",
+        "Descargar su factura e imprimir comprobante"
+      ]
+    },
+    {
+      // 12. Convenience Stores (5 brands)
+      keys: ["7-eleven", "seven eleven", "seven", "circle k", "circlek", "extra", "neto", "tiendas neto"],
+      portalUrl: "https://www.7-eleven.com.mx/facturacion/",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input[name='rfc']", type: "text", required: true },
+        { key: "ticket", name: "Número de Ticket (Código de barras)", selector: "input#barcode", type: "text", required: true },
+        { key: "total", name: "Importe con Centavos", selector: "input#montoTotal", type: "number", required: true }
+      ],
+      steps: [
+        "Abrir el módulo de facturas del portal comercial",
+        "Introducir el número de referencia de ticket e importe exacto",
+        "Agregar el RFC y Correo Electrónico para el envío automático",
+        "Validar datos generales y hacer clic en 'Registrar Factura'"
+      ]
+    },
+    {
+      // 13. Department Stores & General Retail (6 brands)
+      keys: ["liverpool", "palacio de hierro", "palacio de hierro", "sears", "coppel", "suburbia", "sanborns"],
+      portalUrl: "https://facturacion.liverpool.com.mx/",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#rfc", type: "text", required: true },
+        { key: "ticket", name: "Código de Facturación (20 o 22 dígitos)", selector: "input#codFactura", type: "text", required: true }
+      ],
+      steps: [
+        "Entrar al asistente de facturación del almacén mercantil",
+        "Introducir el código de facturación impreso arriba o abajo del ticket",
+        "Validar el total de la compra correspondiente",
+        "Establecer la información fiscal mexicana (Regimen, CP, RFC)",
+        "Generar factura y exportar a correo o disco local"
+      ]
+    },
+    {
+      // 14. Fast Fashion Retail (6 brands)
+      keys: ["h&m", "h & m", "zara", "pull&bear", "pull and bear", "bershka", "stradivarius", "massimo dutti", "inditex"],
+      portalUrl: "https://factura.inditex.com/",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#rfc", type: "text", required: true },
+        { key: "ticket", name: "Número de Ticket de Compra", selector: "input#ticket_num", type: "text", required: true },
+        { key: "establecimiento", name: "Número de Establecimiento/Tienda", selector: "input#store_id", type: "text", required: true }
+      ],
+      steps: [
+        "Acceder al portal unificado de Tickets de Moda Internacional",
+        "Ingresar el código de ticket junto con la fecha de la compra and RFC",
+        "Seleccionar el uso correspondiente del CFDI",
+        "Haz clic en 'Aceptar' para generar la factura timbrada"
+      ]
+    },
+    {
+      // 15. Entertainment & Cinema (4 brands)
+      keys: ["cinepolis", "cinépolis", "cinemex", "ticketmaster", "superboletos", "súperboletos"],
+      portalUrl: "https://www.cinepolis.com/facturacion-electronica",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#rfc", type: "text", required: true },
+        { key: "transaccion", name: "Número de Transacción / Folio de Boleto", selector: "input#transaction_id", type: "text", required: true },
+        { key: "total", name: "Importe Total", selector: "input#amount", type: "number", required: true }
+      ],
+      steps: [
+        "Ingresar al sistema de comprobantes de Boletaje o Cine",
+        "Ingresar el número de referencia o ID de la confirmación de compra",
+        "Escribir RFC y Correo del recipiente",
+        "Hacer clic en 'Facturar boletos' y esperar el PDF y XML"
+      ]
+    },
+    {
+      // 16. Home Improvement & Construction (2 brands)
+      keys: ["home depot", "homedepot", "sodimac"],
+      portalUrl: "https://www.homedepot.com.mx/facturacion-electronica",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#rfc_input", type: "text", required: true },
+        { key: "itu", name: "Código ITU (Impreso en Ticket)", selector: "input#itu_code", type: "text", required: true }
+      ],
+      steps: [
+        "Navegar al portal de Autofacturación de Artículos del Hogar",
+        "Asignar su RFC e ingresar los caracteres del código ITU de seguridad",
+        "Checar lista de artículos comprados",
+        "Darle clic en 'Finalizar' para enviar e imprimir factura"
+      ]
+    },
+    {
+      // 17. Diners & Food Chains (7 brands)
+      keys: ["toks", "el cardenal", "casa de toño", "casa de tono", "sonora grill", "fisher's", "fishers", "krispy kreme", "dunkin"],
+      portalUrl: "https://facturacion.toks.com.mx/",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#UserRFC", type: "text", required: true },
+        { key: "ticket", name: "Folio de Facturación del Consumo", selector: "input#ticket_folio", type: "text", required: true },
+        { key: "fecha", name: "Fecha del Consumo", selector: "input#date_input", type: "date", required: true }
+      ],
+      steps: [
+        "Acceder al portal de facturación oficial de la cadena de alimentos",
+        "Ingresar RFC, fecha de consumo y el folio de ticket impreso",
+        "Confirmar desglose de alimentos, bebidas e impuestos",
+        "Validar régimen fiscal mexicano y solicitar CFDI timbrado"
+      ]
+    },
+    {
+      // 18. Logistics & Shipping (4 brands)
+      keys: ["dhl", "fedex", "estafeta", "redpack", "ups"],
+      portalUrl: "https://facturacion.estafeta.com/",
+      fields: [
+        { key: "rfc", name: "RFC Cliente", selector: "input#rfc", type: "text", required: true },
+        { key: "guia", name: "Número de Guía o Código de Rastreo", selector: "input#tracking_number", type: "text", required: true }
+      ],
+      steps: [
+        "Abrir el módulo de facturación del transportista",
+        "Proporcionar el número de guía de envío de 10 o 22 dígitos",
+        "Ingresar el RFC fiscal del contribuyente emisor",
+        "Confirmar dirección e impuestos",
+        "Hacer clic en 'Emitir Comprobante'"
+      ]
+    }
+  ];
+
+  // Search in active brand directories using flexible keywords
+  for (const brand of BRAND_DICTIONARY) {
+    if (brand.keys.some(key => nameClean.includes(key))) {
+      return {
+        portalUrl: brand.portalUrl,
+        fields: brand.fields,
+        steps: brand.steps
+      };
+    }
+  }
+
+  return null;
+}
+
 function getLocalConnectorFallback(nombreEmisor: string, rfcEmisor: string) {
   const nameClean = nombreEmisor.toLowerCase();
   let portalUrlFallback = `https://facturacion.${nameClean.replace(/[^a-z0-9]/g, "") || "comercio"}.com.mx`;
@@ -516,58 +856,143 @@ function generateLocalPdfHtml(ticket: any, profile: any, connector: any, folioFi
 
 // API endpoint: Use Search Grounding to learn portal specs when no connector exists
 app.post("/api/connectors/learn", async (req: Request, res: Response): Promise<void> => {
-  const { nombreEmisor, rfcEmisor } = req.body;
+  const { nombreEmisor, rfcEmisor, learnedFrom, tokenSaver } = req.body;
+  const customKey = req.headers["x-gemini-api-key"] as string | undefined;
 
   if (!nombreEmisor) {
     res.status(400).json({ error: "Missing nombreEmisor in request" });
     return;
   }
 
-  let ai;
-  try {
-    ai = getGeminiClient();
-  } catch (err: any) {
-    // If no client available, fall back to rule-based spec immediately
-    console.warn("Gemini client not initialized, using local fallback specs.");
-    res.json(getLocalConnectorFallback(nombreEmisor, rfcEmisor));
+  // 1. OPTIMIZATION 1: Local Dictionary Cache Lookup (100% token-free, 0-cost, instant!)
+  const dictMatch = getLocalDictionaryMatch(nombreEmisor, rfcEmisor);
+  if (dictMatch) {
+    console.log(`[Learn] Fast match in local dictionary for '${nombreEmisor}'. Zero-token cached specs returned.`);
+    res.json({
+      ...dictMatch,
+      cost: learnedFrom === "portal_admin" ? 5.00 : 3.00, // Reduced cost for cached items!
+      rawCost: 0,
+      isCached: true
+    });
     return;
   }
 
-  const prompt = `Queremos automatizar el proceso de facturación de tickets de la empresa mexicana '${nombreEmisor}' con RFC '${rfcEmisor || "No provisto"}'.
-                  Utilizando Google Search, busca el link directo al portal oficial de autofacturación de tickets para clientes en México.
-                  Genera la especificación del conector: determina qué campos requiere el formulario para buscar el ticket (ej: folio de ticket, fecha, total, RFC) e inventa selectores CSS realistas (como #txtTicket, input[name='rfc'], etc.) y detalla los pasos secuenciales de navegación para un script como Playwright. Rellena inteligentemente la información si los selectores específicos no están disponibles públicamente.`;
-
+  let ai;
   try {
-    // First Attempt: Using Google Search grounding tools
-    console.log("[Learn] Attempting to find connector details using Search Grounding...");
+    ai = getGeminiClient(customKey);
+  } catch (err: any) {
+    // If no client available, fall back to rule-based spec immediately
+    console.warn("Gemini client not initialized, using local fallback specs.");
+    const fallbackSpecs = getLocalConnectorFallback(nombreEmisor, rfcEmisor);
+    res.json({
+      ...fallbackSpecs,
+      cost: learnedFrom === "portal_admin" ? 25.00 : 15.00,
+      rawCost: 0
+    });
+    return;
+  }
+
+  // 2. OPTIMIZATION 2: Dynamic Token-Saver Strategy Selection
+  const isEcoMode = tokenSaver === true || tokenSaver === "true";
+  
+  try {
+    if (isEcoMode) {
+      // Direct Fast AI mapping (Pure LLM with no grounding + Minimal reasoning)
+      console.log(`[Learn] Token-Saver (ECO) Mode active. Formulating fast offline AI mapping...`);
+      
+      const prompt = `Queremos automatizar de forma ultra-simplificada el proceso de facturación de tickets de la empresa mexicana '${nombreEmisor}' con RFC '${rfcEmisor || "No provisto"}'.
+                      Basándote EN TU CONOCIMIENTO INTERNO (sin buscar en Google), genera la especificación estructurada estándar: determina de 2 a 3 campos requeridos clave para buscar el ticket y describe un flujo secuencial simplificado de máximo 4 pasos cortos.
+                      Usa selectores CSS intuitivos y genéricos (como #txtTicket, input[name='rfc']). SÉ ABSOLUTAMENTE CONCISO Y LIMITA EL LARGO DEL TEXTO PARA AHORRAR TOKENS.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          thinkingConfig: { thinkingLevel: "LOW" }, // Disables heavy reasoning tokens!
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              portalUrl: { type: "STRING" },
+              fields: {
+                type: "ARRAY",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    key: { type: "STRING" },
+                    name: { type: "STRING" },
+                    selector: { type: "STRING" },
+                    type: { type: "STRING" },
+                    required: { type: "BOOLEAN" },
+                  },
+                  required: ["key", "name", "selector", "type", "required"],
+                },
+              },
+              steps: {
+                type: "ARRAY",
+                items: { type: "STRING" },
+              },
+            },
+            required: ["portalUrl", "fields", "steps"],
+          },
+        },
+      });
+
+      const textResult = response.text;
+      if (!textResult) {
+        throw new Error("Empty ECO response from Gemini");
+      }
+
+      const promptTokens = response.usageMetadata?.promptTokenCount || 400;
+      const outputTokens = response.usageMetadata?.candidatesTokenCount || 200;
+      const exchangeRate = 18.50;
+      const rawCost = (((promptTokens * 0.075 + outputTokens * 0.30) / 1000000)) * exchangeRate;
+
+      const learnedSpecs = JSON.parse(textResult.trim());
+      res.json({
+        ...learnedSpecs,
+        cost: learnedFrom === "portal_admin" ? 12.00 : 8.00, // Reduced cost for ECO mode!
+        rawCost: parseFloat(rawCost.toFixed(6)),
+        isEco: true
+      });
+      return;
+    }
+
+    // Default Mode: Search Grounding but fully optimized token parameters
+    console.log("[Learn] Deep Mode active. Attempting to find connector details using Search Grounding + LOW reasoning...");
+    
+    const prompt = `Queremos automatizar el proceso de facturación de tickets de la empresa mexicana '${nombreEmisor}' con RFC '${rfcEmisor || "No provisto"}'.
+                    Utilizando Google Search, busca el link directo al portal oficial de autofacturación de tickets para clientes en México.
+                    Genera la especificación del conector: determina qué campos requiere el formulario para buscar el ticket e inventa selectores CSS realistas y de 4 a 5 pasos secuenciales cortos.
+                    POR FAVOR SÉ EXTREMADAMENTE CONCISO: Genera nombres de campos cortos, selectores limpios y descripciones de pasos directas (máximo 12 palabras por instrucción) para reducir significativamente la generación de tokens.`;
+
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
+        thinkingConfig: { thinkingLevel: "LOW" }, // Cuts down reasoning tokens on search results
         responseMimeType: "application/json",
         responseSchema: {
           type: "OBJECT",
           properties: {
-            portalUrl: { type: "STRING", description: "La URL directa oficial al portal de facturación en México (ej: https://facturacion.walmartmexico.com/)" },
+            portalUrl: { type: "STRING", description: "URL oficial directo al portal en México" },
             fields: {
               type: "ARRAY",
-              description: "Los campos de filtro de ticket para entrar a facturar",
               items: {
                 type: "OBJECT",
                 properties: {
-                  key: { type: "STRING", description: "Clave técnica del campo (ej: rfc, folio, total, fecha, sucursal)" },
-                  name: { type: "STRING", description: "Nombre visual legible en español (ej: Número de Ticket, RFC del cliente)" },
-                  selector: { type: "STRING", description: "Selector CSS sugerido para automatizar la entrada de este campo" },
-                  type: { type: "STRING", description: "Tipo de selector: text, number, date, select" },
-                  required: { type: "BOOLEAN", description: "Si el campo es requerido para buscar el ticket" },
+                  key: { type: "STRING" },
+                  name: { type: "STRING" },
+                  selector: { type: "STRING" },
+                  type: { type: "STRING" },
+                  required: { type: "BOOLEAN" },
                 },
                 required: ["key", "name", "selector", "type", "required"],
               },
             },
             steps: {
               type: "ARRAY",
-              description: "Lista ordenada de pasos secuenciales para el flujo automatizado",
               items: { type: "STRING" },
             },
           },
@@ -581,18 +1006,29 @@ app.post("/api/connectors/learn", async (req: Request, res: Response): Promise<v
       throw new Error("Empty search response from Gemini");
     }
 
+    const promptTokens = response.usageMetadata?.promptTokenCount || 1000;
+    const outputTokens = response.usageMetadata?.candidatesTokenCount || 400;
+    const exchangeRate = 18.50;
+    // Grounding contains $0.01 USD grounding crawl fee + prompt/output tokens at 3.5 Flash rate
+    const rawCost = (((promptTokens * 0.075 + outputTokens * 0.30) / 1000000) + 0.01) * exchangeRate;
+
     const learnedSpecs = JSON.parse(textResult.trim());
-    res.json(learnedSpecs);
+    res.json({
+      ...learnedSpecs,
+      cost: learnedFrom === "portal_admin" ? 25.00 : 15.00,
+      rawCost: parseFloat(rawCost.toFixed(6))
+    });
   } catch (searchError: any) {
-    console.warn("[Learn] Search Grounding failed (likely due to quota/rates limits). Falling back to pure text based LLM...", searchError.message || searchError);
+    console.warn("[Learn] Optimized path failed. Falling back to pure text based LLM...", searchError.message || searchError);
     
     try {
       // Second Attempt: Call Gemini without googleSearch tool configurations
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
         contents: `Queremos automatizar el proceso de facturación de tickets de la empresa mexicana '${nombreEmisor}' con RFC '${rfcEmisor || "No provisto"}'.
-                  Genera la especificación del conector basada en tu conocimiento: determina qué campos requiere el formulario para buscar el ticket (ej: folio de ticket, fecha, total, RFC) e inventa selectores CSS realistas (como #txtTicket, input[name='rfc'], etc.) y detalla los pasos secuenciales de navegación para un script de automatización.`,
+                  Genera la especificación simplificada y muy concisa del conector basada en tu conocimiento: determina de 2 a 3 campos requeridos (ej: folio, fecha, total, RFC) e inventa selectores CSS realistas (como #txtTicket, input[name='rfc']) y detalla de 3 a 4 pasos secuenciales muy cortos para un script de automatización. Evita palabras innecesarias para ahorrar tokens.`,
         config: {
+          thinkingConfig: { thinkingLevel: "LOW" }, // Save reasoning tokens
           responseMimeType: "application/json",
           responseSchema: {
             type: "OBJECT",
@@ -627,14 +1063,26 @@ app.post("/api/connectors/learn", async (req: Request, res: Response): Promise<v
         throw new Error("Empty pure LLM response");
       }
 
+      const promptTokens = response.usageMetadata?.promptTokenCount || 500;
+      const outputTokens = response.usageMetadata?.candidatesTokenCount || 250;
+      const exchangeRate = 18.50;
+      const rawCost = (((promptTokens * 0.075 + outputTokens * 0.30) / 1000000)) * exchangeRate;
+
       const learnedSpecs = JSON.parse(textResult.trim());
-      res.json(learnedSpecs);
+      res.json({
+        ...learnedSpecs,
+        cost: learnedFrom === "portal_admin" ? 18.00 : 12.00,
+        rawCost: parseFloat(rawCost.toFixed(6))
+      });
     } catch (pureLlmError: any) {
-      console.error("[Learn] Pure LLM failed too (most likely API quota exhausted 429). Utilizing Rule-Based Heuristic Fallback.", pureLlmError.message || pureLlmError);
+      console.error("[Learn] Pure LLM failed too. Utilizing Rule-Based Heuristic Fallback.", pureLlmError.message || pureLlmError);
       
-      // Third Attempt / Ultimate Fallback: High quality static inference of typical portals
       const localSpecs = getLocalConnectorFallback(nombreEmisor, rfcEmisor);
-      res.json(localSpecs);
+      res.json({
+        ...localSpecs,
+        cost: learnedFrom === "portal_admin" ? 25.00 : 15.00,
+        rawCost: 0
+      });
     }
   }
 });
@@ -642,6 +1090,7 @@ app.post("/api/connectors/learn", async (req: Request, res: Response): Promise<v
 // API endpoint: Run high-fidelity automation simulation and generate official CFDI XML & PDF html representation
 app.post("/api/automation/run", async (req: Request, res: Response): Promise<void> => {
   const { ticket, profile, connector } = req.body;
+  const customKey = req.headers["x-gemini-api-key"] as string | undefined;
 
   if (!ticket || !profile || !connector) {
     res.status(400).json({ error: "Missing ticket, profile, or connector data for automation" });
@@ -652,13 +1101,15 @@ app.post("/api/automation/run", async (req: Request, res: Response): Promise<voi
 
   let ai;
   try {
-    ai = getGeminiClient();
+    ai = getGeminiClient(customKey);
   } catch (err: any) {
     console.warn("Gemini client missing or failed to initialize, using robust offline invoice generator.");
     res.json({
       xmlContent: generateLocalXml(ticket, profile, connector, generatedFolioFiscal),
       pdfHtml: generateLocalPdfHtml(ticket, profile, connector, generatedFolioFiscal),
-      folioFiscal: generatedFolioFiscal
+      folioFiscal: generatedFolioFiscal,
+      cost: connector?.learnedFrom === "automatizacion_ticket" ? 1.50 : 0.25,
+      rawCost: 0
     });
     return;
   }
@@ -696,8 +1147,17 @@ app.post("/api/automation/run", async (req: Request, res: Response): Promise<voi
       throw new Error("Failed to compile CFDI data from Gemini");
     }
 
+    const promptTokens = response.usageMetadata?.promptTokenCount || 1500;
+    const outputTokens = response.usageMetadata?.candidatesTokenCount || 4500;
+    const exchangeRate = 18.50;
+    const rawCost = (((promptTokens * 0.075 + outputTokens * 0.30) / 1000000)) * exchangeRate;
+
     const generatedInvoicing = JSON.parse(textResult.trim());
-    res.json(generatedInvoicing);
+    res.json({
+      ...generatedInvoicing,
+      cost: connector?.learnedFrom === "automatizacion_ticket" ? 15.00 : 0.25,
+      rawCost: parseFloat(rawCost.toFixed(6))
+    });
   } catch (error: any) {
     console.warn("Automation simulation failed using Gemini API. Falling back to robust offline generation engine...", error.message || error);
     
@@ -709,6 +1169,8 @@ app.post("/api/automation/run", async (req: Request, res: Response): Promise<voi
       xmlContent: xml,
       pdfHtml: pdf,
       folioFiscal: generatedFolioFiscal,
+      cost: connector?.learnedFrom === "automatizacion_ticket" ? 1.50 : 0.25,
+      rawCost: 0
     });
   }
 });
