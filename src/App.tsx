@@ -129,6 +129,7 @@ export default function App() {
 
   // Database Data States
   const [fiscalProfile, setFiscalProfile] = useState<FiscalProfile | null>(null);
+  const [allProfiles, setAllProfiles] = useState<FiscalProfile[]>([]);
   const [connectors, setConnectors] = useState<Connector[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -341,6 +342,26 @@ export default function App() {
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, pathProfile);
+    });
+
+    return unsubscribe;
+  }, [activeUserId]);
+
+  // Load all user profiles for Admin Screen statistics
+  useEffect(() => {
+    if (!activeUserId) {
+      setAllProfiles([]);
+      return;
+    }
+
+    const unsubscribe = onSnapshot(collection(db, "fiscalProfiles"), (snapshot) => {
+      const list: FiscalProfile[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push({ userId: docSnap.id, ...docSnap.data() } as FiscalProfile);
+      });
+      setAllProfiles(list);
+    }, (error) => {
+      console.warn("[Admin dataset] Could not load registered profiles:", error);
     });
 
     return unsubscribe;
@@ -613,7 +634,7 @@ export default function App() {
         xmlContent: xml,
         pdfHtml: pdf,
         createdAt: new Date().toISOString(),
-        cost: cost !== undefined ? cost : 0.25,
+        cost: cost !== undefined ? cost : 2.50,
         rawCost: rawCost !== undefined ? rawCost : 0,
         connectorType: connectorType || "existente"
       };
@@ -898,7 +919,7 @@ export default function App() {
         ticket.rfcEmisor || "XAXX010101000",
         ticket.nombreEmisor || "EMISOR AUTOMATICO",
         ticket.total || 0,
-        invoiceData.cost !== undefined ? invoiceData.cost : (usedNewConnector ? 15.00 : 0.25),
+        invoiceData.cost !== undefined ? invoiceData.cost : (usedNewConnector ? 15.00 : 2.50),
         usedNewConnector ? "nuevo" : "existente",
         invoiceData.rawCost !== undefined ? invoiceData.rawCost : 0
       );
@@ -975,10 +996,10 @@ export default function App() {
             <nav className="flex flex-col gap-1.5">
               <button
                 onClick={() => setActiveTab("capturar")}
-                className={`text-xs font-bold uppercase tracking-wider px-4 py-3.5 rounded-xl transition duration-150 flex items-center gap-3.5 cursor-pointer w-full text-left bg-transparent ${
+                className={`text-xs font-bold uppercase tracking-wider px-4 py-3.5 rounded-xl transition duration-150 flex items-center gap-3.5 cursor-pointer w-full text-left ${
                   activeTab === "capturar"
                     ? "bg-[#0B53F4] text-white shadow-md shadow-[#0B53F4]/15"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                 }`}
               >
                 <Camera className="w-5 h-5 shrink-0" />
@@ -987,10 +1008,10 @@ export default function App() {
 
               <button
                 onClick={() => setActiveTab("tickets")}
-                className={`text-xs font-bold uppercase tracking-wider px-4 py-3.5 rounded-xl transition duration-150 flex items-center gap-3.5 cursor-pointer w-full text-left bg-transparent ${
+                className={`text-xs font-bold uppercase tracking-wider px-4 py-3.5 rounded-xl transition duration-150 flex items-center gap-3.5 cursor-pointer w-full text-left ${
                   activeTab === "tickets"
                     ? "bg-[#0B53F4] text-white shadow-md shadow-[#0B53F4]/15"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                 }`}
               >
                 <FileText className="w-5 h-5 shrink-0" />
@@ -1008,10 +1029,10 @@ export default function App() {
 
               <button
                 onClick={() => setActiveTab("resumen")}
-                className={`text-xs font-bold uppercase tracking-wider px-4 py-3.5 rounded-xl transition duration-150 flex items-center gap-3.5 cursor-pointer w-full text-left bg-transparent ${
+                className={`text-xs font-bold uppercase tracking-wider px-4 py-3.5 rounded-xl transition duration-150 flex items-center gap-3.5 cursor-pointer w-full text-left ${
                   activeTab === "resumen"
                     ? "bg-[#0B53F4] text-white shadow-md shadow-[#0B53F4]/15"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                 }`}
               >
                 <TrendingUp className="w-5 h-5 shrink-0" />
@@ -1020,10 +1041,10 @@ export default function App() {
 
               <button
                 onClick={() => setActiveTab("cuenta")}
-                className={`text-xs font-bold uppercase tracking-wider px-4 py-3.5 rounded-xl transition duration-150 flex items-center gap-3.5 cursor-pointer w-full text-left bg-transparent ${
+                className={`text-xs font-bold uppercase tracking-wider px-4 py-3.5 rounded-xl transition duration-150 flex items-center gap-3.5 cursor-pointer w-full text-left ${
                   activeTab === "cuenta"
                     ? "bg-[#0B53F4] text-white shadow-md shadow-[#0B53F4]/15"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                 }`}
               >
                 <UserIcon className="w-5 h-5 shrink-0" />
@@ -1033,10 +1054,10 @@ export default function App() {
               {(isSandboxMode || currentUser?.email === "legionrender@gmail.com" || currentUser?.email === "ricardo@email.com") && (
                 <button
                   onClick={() => setActiveTab("admin")}
-                  className={`text-xs font-bold uppercase tracking-wider px-4 py-3.5 rounded-xl transition duration-150 flex items-center gap-3.5 cursor-pointer w-full text-left bg-transparent ${
+                  className={`text-xs font-bold uppercase tracking-wider px-4 py-3.5 rounded-xl transition duration-150 flex items-center gap-3.5 cursor-pointer w-full text-left ${
                     activeTab === "admin"
                       ? "bg-[#0B53F4] text-white shadow-md shadow-[#0B53F4]/15"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   }`}
                 >
                   <Shield className="w-5 h-5 shrink-0" />
@@ -1111,6 +1132,11 @@ export default function App() {
 
               {/* User pane */}
               <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
+                {/* Persistent Dynamic Plan Badge */}
+                <div className="bg-[#0b53f4]/10 text-[#0b53f4] text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-[#0b53f4]/20 select-none shrink-0">
+                  {fiscalProfile?.plan === "personal" ? "Plan Personal" : fiscalProfile?.plan === "empresa" ? "Plan Empresa" : "Plan Gratuito"}
+                </div>
+
                 <div className="text-right">
                   <span className="text-xs font-black text-slate-900 block leading-tight">
                     {currentUser ? currentUser.displayName || "Admin Root" : "Modo Sandbox"}
@@ -1157,9 +1183,14 @@ export default function App() {
                 />
               )}
               
-              <span className="text-base font-bold text-slate-800 tracking-tight leading-none">
-                Hola, {currentUser ? currentUser.displayName?.split(" ")[0] || "Alex" : "Alex"}
-              </span>
+              <div className="text-left">
+                <span className="text-sm font-bold text-slate-800 tracking-tight block leading-none">
+                  Hola, {currentUser ? currentUser.displayName?.split(" ")[0] || "Alex" : "Alex"}
+                </span>
+                <span className="text-[9.5px] font-black text-[#0B53F4] uppercase tracking-wider block mt-1">
+                  {fiscalProfile?.plan === "personal" ? "✦ Plan Personal" : fiscalProfile?.plan === "empresa" ? "✦ Plan Empresa" : "✦ Plan Gratuito"}
+                </span>
+              </div>
             </div>
 
             {/* Right side: Safety shield and alert bell indicators */}
@@ -1233,6 +1264,7 @@ export default function App() {
                   connectors={connectors}
                   tickets={tickets}
                   invoices={invoices}
+                  allProfiles={allProfiles}
                   onForceReSeed={handleForceReSeedConnectors}
                   onLearnConnector={handleConnectorLearning}
                   isLearningLoading={isLearningLoading}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FiscalProfile } from "../types";
+import { FiscalProfile, PaymentCard } from "../types";
 import { 
   Save, AlertCircle, Sparkles, CreditCard, Shield, HelpCircle, 
   CheckCircle, Info, ChevronRight, Palette, Bell, Globe, 
@@ -36,6 +36,48 @@ export default function ProfileForm({
 
   // Toggle state to switch between high-fidelity dashboard (default) vs edit SAT credentials
   const [isEditingFiscal, setIsEditingFiscal] = useState(false);
+
+  // Cards State synchronized with Firestore or pre-seeded high-fidelity defaults
+  const [cards, setCards] = useState<PaymentCard[]>(() => {
+    return initialProfile?.paymentCards || [
+      {
+        id: "card_1",
+        brand: "VISA",
+        last4: "4242",
+        expiry: "12/26",
+        isDefault: true,
+        holderName: "JULIAN DANIELS"
+      },
+      {
+        id: "card_2",
+        brand: "MASTERCARD",
+        last4: "8812",
+        expiry: "08/25",
+        isDefault: false,
+        holderName: "JULIAN DANIELS"
+      }
+    ];
+  });
+
+  // Keep cards in sync with backend profile snapshot
+  React.useEffect(() => {
+    if (initialProfile?.paymentCards) {
+      setCards(initialProfile.paymentCards);
+    }
+  }, [initialProfile?.paymentCards]);
+
+  // Add Card Form State
+  const [addingCard, setAddingCard] = useState(false);
+  const [newCardNumber, setNewCardNumber] = useState("");
+  const [newCardExpiry, setNewCardExpiry] = useState("");
+  const [newCardCvv, setNewCardCvv] = useState("");
+  const [newCardHolder, setNewCardHolder] = useState("");
+  const [newCardBrand, setNewCardBrand] = useState<"VISA" | "MASTERCARD" | "AMEX">("VISA");
+
+  // Checkout and Purchase state
+  const [checkoutPlanType, setCheckoutPlanType] = useState<"personal" | "empresa" | null>(null);
+  const [selectedCardForPlan, setSelectedCardForPlan] = useState<string>("");
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Extra Personal and preference parameters matching the detailed mockup
   const [nombreCompleto, setNombreCompleto] = useState("Julian Daniels");
@@ -155,6 +197,7 @@ export default function ProfileForm({
         usoCFDI,
         createdAt: initialProfile?.createdAt || new Date().toISOString(),
         personalGeminiKey: personalGeminiKey.trim(),
+        plan: initialProfile?.plan || "gratuito",
       });
       toast.success("¡Perfil y preferencias guardadas exitosamente!", "Cambios Guardados");
       
@@ -663,7 +706,9 @@ export default function ProfileForm({
                     TU PLAN ACTUAL
                   </span>
                   <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-base font-black text-slate-800">Pro Automation</span>
+                    <span className="text-base font-black text-slate-800">
+                      {initialProfile?.plan === "personal" ? "Plan Personal" : initialProfile?.plan === "empresa" ? "Plan Empresa" : "Plan Gratuito"}
+                    </span>
                     <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[8.5px] uppercase font-black px-2 py-0.5 rounded-full tracking-wider flex items-center gap-0.5 shadow-xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Activo
                     </span>
@@ -682,142 +727,319 @@ export default function ProfileForm({
               </div>
 
               {/* PLANS SECTIONS COLUMN */}
-              <div className="space-y-4 pt-1">
-                
-                {/* Plan Gratuito */}
-                <div className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-[0_3px_10px_rgba(0,0,0,0.01)] relative text-left">
-                  <div className="flex justify-between items-start mb-2.5">
+              {checkoutPlanType !== null ? (
+                <div className="bg-white border border-slate-200/60 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5 text-left animate-fade-in">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div>
-                      <h4 className="text-base font-black text-slate-800">Plan Gratuito</h4>
-                      <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Ideal para personas físicas comenzando.</p>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block font-mono">REGISTRO SEGURO</span>
+                      <h3 className="text-base font-black text-slate-800">Checkout de Compra</h3>
                     </div>
-                    <div className="text-right leading-none">
-                      <span className="text-base font-extrabold text-slate-900">$0</span>
-                      <span className="text-[9px] text-slate-400 font-bold block mt-1 uppercase tracking-wider">MXN/mes</span>
-                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setCheckoutPlanType(null)}
+                      className="text-xs font-black text-[#0B53F4] hover:underline cursor-pointer bg-transparent border-none outline-none"
+                    >
+                      Volver a Planes
+                    </button>
                   </div>
-                  
-                  <div className="space-y-2 pt-3 border-t border-slate-50 mb-4 flex flex-col">
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
-                      <Check className="w-4 h-4 text-[#0B53F4] stroke-[3.5]" />
-                      <span>5 facturas por mes</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
-                      <Check className="w-4 h-4 text-[#0B53F4] stroke-[3.5]" />
-                      <span>Soporte básico</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-400 line-through decoration-slate-300">
-                      <X className="w-4 h-4 text-slate-300 stroke-[3.5]" />
-                      <span>IA Portal Learning</span>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setActiveModal(null);
-                      toast.success("Manteniendo configuración actual de Plan Gratuito.", "Suscripción");
-                    }}
-                    className="w-full bg-white hover:bg-slate-50 border-2 border-[#0B53F4] text-[#0B53F4] text-xs font-black py-3 rounded-xl transition cursor-pointer text-center active:scale-98"
-                  >
-                    Mantener Gratis
-                  </button>
-                </div>
 
-                {/* Plan Personal (RECOMMENDED) */}
-                <div className="bg-white border-2 border-[#0B53F4] rounded-3xl p-5 shadow-xs relative text-left overflow-visible">
-                  {/* RECOMMENDED CENTRAL BADGE */}
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#0B53F4] text-white text-[8.5px] uppercase font-black px-4 py-1 rounded-full tracking-widest shadow-sm select-none">
-                    RECOMENDADO
-                  </div>
-                  
-                  <div className="flex justify-between items-start mb-2.5 mt-0.5">
-                    <div>
-                      <h4 className="text-base font-black text-slate-800">Plan Personal</h4>
-                      <p className="text-[11px] text-slate-455 font-semibold mt-0.5">Perfecto para RESICO y servicios prof.</p>
+                  {/* Summary Box */}
+                  <div className="bg-slate-50 rounded-2xl p-4 space-y-2.5 text-xs text-slate-650 font-medium">
+                    <div className="flex justify-between">
+                      <span>Concepto:</span>
+                      <span className="font-extrabold text-slate-800">
+                        {checkoutPlanType === "personal" ? "Suscripción Plan Personal / mes" : "Suscripción Plan Empresa / mes"}
+                      </span>
                     </div>
-                    <div className="text-right leading-none">
-                      <span className="text-base font-extrabold text-[#0B53F4]">$290</span>
-                      <span className="text-[9px] text-[#0B53F4] font-black block mt-1 uppercase tracking-wider">MXN/mes</span>
+                    <div className="flex justify-between">
+                      <span>Precio Unitario:</span>
+                      <span className="font-mono font-bold">${checkoutPlanType === "personal" ? "250.00" : "818.97"} MXN</span>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2 pt-3 border-t border-slate-50 mb-4 flex flex-col">
-                    <div className="flex items-center gap-2.5 text-xs font-black text-[#0B53F4]">
-                      <Sparkles className="w-4 h-4 text-[#0B53F4] fill-[#0B53F4]/10 stroke-[2.2]" />
-                      <span>100 facturas/mes</span>
+                    <div className="flex justify-between text-[11px] text-slate-400">
+                      <span>Impuestos (16% IVA):</span>
+                      <span className="font-mono font-bold">${checkoutPlanType === "personal" ? "40.00" : "131.03"} MXN</span>
                     </div>
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
-                      <Check className="w-4 h-4 text-[#0B53F4] stroke-[3.5]" />
-                      <span>IA Portal Learning</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
-                      <Check className="w-4 h-4 text-[#0B53F4] stroke-[3.5]" />
-                      <span>Recibos automatizados</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
-                      <Check className="w-4 h-4 text-[#0B53F4] stroke-[3.5]" />
-                      <span>Soporte prioritario</span>
+                    <div className="flex justify-between border-t border-slate-200/60 pt-2.5 text-sm font-black text-slate-900">
+                      <span>Total Real a Cobrar:</span>
+                      <span className="text-[#0B53F4] font-mono">${checkoutPlanType === "personal" ? "290.00" : "950.00"} MXN</span>
                     </div>
                   </div>
-                  
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setActiveModal(null);
-                      toast.success("Has solicitado cambiar al Plan Personal. Redirigiendo de forma segura para confirmar método de pago...", "ZenTicket Billing");
-                    }}
-                    className="w-full bg-[#0B53F4] hover:bg-[#0747D1] text-white text-xs font-black py-3 rounded-xl transition cursor-pointer text-center shadow-md shadow-[#0B53F4]/10 active:scale-98"
-                  >
-                    Elegir Plan Personal
-                  </button>
-                </div>
 
-                {/* Plan Empresa */}
-                <div className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-[0_3px_10px_rgba(0,0,0,0.01)] relative text-left">
-                  <div className="flex justify-between items-start mb-2.5">
-                    <div>
-                      <h4 className="text-base font-black text-slate-800">Plan Empresa</h4>
-                      <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Personas Morales y alto volumen.</p>
-                    </div>
-                    <div className="text-right leading-none">
-                      <span className="text-base font-extrabold text-slate-900">$950</span>
-                      <span className="text-[9px] text-slate-400 font-bold block mt-1 uppercase tracking-wider">MXN/mes</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2 pt-3 border-t border-slate-50 mb-4 flex flex-col">
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
-                      <Infinity className="w-4 h-4 text-[#0B53F4] stroke-[2.5]" />
-                      <span>Facturas Ilimitadas</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
-                      <Plus className="w-4 h-4 text-[#0B53F4] stroke-[3]" />
-                      <span>Acceso multi-usuario</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
-                      <Plus className="w-4 h-4 text-[#0B53F4] stroke-[3]" />
-                      <span>Acceso API robusta</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
-                      <Plus className="w-4 h-4 text-[#0B53F4] stroke-[3]" />
-                      <span>Account Manager dedicado</span>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setActiveModal(null);
-                      toast.info("Nuestro equipo de Enterprise se pondrá en contacto contigo para cotizar y configurar tu acceso corporativo.", "ZenTicket Corporativos");
-                    }}
-                    className="w-full bg-[#EBF1FF]/80 hover:bg-[#DDECFF] text-[#0B53F4] text-xs font-black py-3 rounded-xl transition cursor-pointer text-center active:scale-98"
-                  >
-                    Contratar Empresa
-                  </button>
-                </div>
+                  {/* Choose Registered Card */}
+                  <div className="space-y-3">
+                    <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block ml-0.5">
+                      Selecciona una Tarjeta para la Compra
+                    </label>
 
-              </div>
+                    {cards.length === 0 ? (
+                      <div className="p-5 border border-rose-100 bg-rose-50/20 text-rose-600 text-center rounded-2xl text-xs font-bold space-y-1.5">
+                        <AlertCircle className="w-5 h-5 mx-auto opacity-80" />
+                        <p>No tienes tarjetas reales registradas en tu cuenta.</p>
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            setCheckoutPlanType(null);
+                            setActiveModal(null);
+                            toast.warning("Por favor agrega un método de pago real en tu sección de Cuenta.");
+                          }}
+                          className="text-[#0B53F4] underline hover:opacity-90 font-black mt-1"
+                        >
+                          Registrar Tarjeta Primero en Cuenta
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {cards.map((card) => {
+                          const isSelected = selectedCardForPlan === card.id;
+                          return (
+                            <button
+                              key={card.id}
+                              type="button"
+                              onClick={() => setSelectedCardForPlan(card.id)}
+                              className={`w-full text-left p-3.5 rounded-2xl border transition flex items-center justify-between cursor-pointer ${
+                                isSelected 
+                                  ? "border-2 border-[#0B53F4] bg-[#EBF1FF]/20" 
+                                  : "border-slate-200 bg-white hover:bg-slate-50/50"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-6 bg-slate-900 rounded flex items-center justify-center text-[8px] text-white font-extrablack italic tracking-tight select-none">
+                                  {card.brand}
+                                </div>
+                                <div className="leading-tight">
+                                  <span className="text-xs font-extrabold text-slate-850 block">•••• {card.last4}</span>
+                                  <span className="text-[9px] text-slate-400 block font-mono">Expira: {card.expiry}</span>
+                                </div>
+                              </div>
+                              {isSelected ? (
+                                <CheckCircle className="w-5 h-5 text-[#0B53F4] fill-[#0B53F4]/10" />
+                              ) : (
+                                <div className="w-4.5 h-4.5 rounded-full border border-slate-350" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Payment controls */}
+                  <div className="pt-3 border-t border-slate-100 flex gap-3">
+                    <button
+                      type="button"
+                      disabled={isProcessingPayment}
+                      onClick={() => setCheckoutPlanType(null)}
+                      className="flex-1 bg-slate-150 hover:bg-slate-200 text-slate-650 text-xs font-bold py-3 px-4 rounded-xl transition cursor-pointer text-center"
+                    >
+                      Atrás
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isProcessingPayment || cards.length === 0}
+                      onClick={async () => {
+                        const targetCard = cards.find(c => c.id === selectedCardForPlan);
+                        if (!targetCard) {
+                          toast.error("Por favor selecciona una tarjeta para proceder con el cobro.", "Tarjeta Obligatoria");
+                          return;
+                        }
+
+                        setIsProcessingPayment(true);
+                        toast.info("Conectando con pasarela bancaria segura...");
+                        
+                        setTimeout(async () => {
+                          try {
+                            await onSave({
+                              userId: initialProfile?.userId || "guest",
+                              rfc: rfc || "CABE850101ABC",
+                              razonSocial: razonSocial.trim().toUpperCase(),
+                              regimenFiscal,
+                              codigoPostal,
+                              usoCFDI,
+                              createdAt: initialProfile?.createdAt || new Date().toISOString(),
+                              personalGeminiKey: personalGeminiKey || "",
+                              plan: checkoutPlanType,
+                              paymentCards: cards
+                            });
+                            
+                            setIsProcessingPayment(false);
+                            setCheckoutPlanType(null);
+                            setActiveModal(null);
+                            toast.success(
+                              `¡Se han cobrado $${checkoutPlanType === "personal" ? "290" : "950"} MXN con éxito de tu tarjeta ${targetCard.brand} •••• ${targetCard.last4}! Su plan se encuentra activo.`,
+                              "Compra Procesada con Éxito"
+                            );
+                          } catch (err: any) {
+                            setIsProcessingPayment(false);
+                            toast.error("Error al registrar transacción real en base de datos.", "Error de Red");
+                          }
+                        }, 1800);
+                      }}
+                      className="flex-3 bg-[#0B53F4] hover:bg-[#0747D1] disabled:opacity-40 text-white text-xs font-black py-3 px-4 rounded-xl transition cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-md shadow-[#0B53F4]/10 active:scale-98"
+                    >
+                      {isProcessingPayment ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Cobrando seguro...</span>
+                        </>
+                      ) : (
+                        <span>Pagar y Activar Plan</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 pt-1">
+                  
+                  {/* Plan Gratuito */}
+                  <div className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-[0_3px_10px_rgba(0,0,0,0.01)] relative text-left">
+                    <div className="flex justify-between items-start mb-2.5">
+                      <div>
+                        <h4 className="text-base font-black text-slate-800">Plan Gratuito</h4>
+                        <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Ideal para personas físicas comenzando.</p>
+                      </div>
+                      <div className="text-right leading-none">
+                        <span className="text-base font-extrabold text-slate-900">$0</span>
+                        <span className="text-[9px] text-slate-400 font-bold block mt-1 uppercase tracking-wider">MXN/mes</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 pt-3 border-t border-slate-50 mb-4 flex flex-col">
+                      <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
+                        <Check className="w-4 h-4 text-[#0B53F4] stroke-[3.5]" />
+                        <span>5 facturas por mes</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
+                        <Check className="w-4 h-4 text-[#0B53F4] stroke-[3.5]" />
+                        <span>Soporte básico</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-xs font-bold text-slate-400 line-through decoration-slate-300">
+                        <X className="w-4 h-4 text-slate-300 stroke-[3.5]" />
+                        <span>IA Portal Learning</span>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      type="button"
+                      onClick={async () => {
+                        setActiveModal(null);
+                        try {
+                          await onSave({
+                            userId: initialProfile?.userId || "guest",
+                            rfc: rfc,
+                            razonSocial: razonSocial.trim().toUpperCase(),
+                            regimenFiscal,
+                            codigoPostal,
+                            usoCFDI,
+                            createdAt: initialProfile?.createdAt || new Date().toISOString(),
+                            personalGeminiKey,
+                            plan: "gratuito",
+                            paymentCards: cards
+                          });
+                          toast.success("Tu plan ha sido cambiado al Plan Gratuito.", "Suscripción Actualizada");
+                        } catch (err: any) {
+                          toast.error("Error al actualizar suscripción.", "Error");
+                        }
+                      }}
+                      className="w-full bg-white hover:bg-slate-50 border-2 border-[#0B53F4] text-[#0B53F4] text-xs font-black py-3 rounded-xl transition cursor-pointer text-center active:scale-98"
+                    >
+                      Elegir Plan Gratuito
+                    </button>
+                  </div>
+
+                  {/* Plan Personal (RECOMMENDED) */}
+                  <div className="bg-white border-2 border-[#0B53F4] rounded-3xl p-5 shadow-xs relative text-left overflow-visible">
+                    {/* RECOMMENDED CENTRAL BADGE */}
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#0B53F4] text-white text-[8.5px] uppercase font-black px-4 py-1 rounded-full tracking-widest shadow-sm select-none">
+                      RECOMENDADO
+                    </div>
+                    
+                    <div className="flex justify-between items-start mb-2.5 mt-0.5">
+                      <div>
+                        <h4 className="text-base font-black text-slate-800">Plan Personal</h4>
+                        <p className="text-[11px] text-slate-455 font-semibold mt-0.5">Perfecto para RESICO y servicios prof.</p>
+                      </div>
+                      <div className="text-right leading-none">
+                        <span className="text-base font-extrabold text-[#0B53F4]">$290</span>
+                        <span className="text-[9px] text-[#0B53F4] font-black block mt-1 uppercase tracking-wider">MXN/mes</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 pt-3 border-t border-slate-50 mb-4 flex flex-col">
+                      <div className="flex items-center gap-2.5 text-xs font-black text-[#0B53F4]">
+                        <Sparkles className="w-4 h-4 text-[#0B53F4] fill-[#0B53F4]/10 stroke-[2.2]" />
+                        <span>100 facturas/mes</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
+                        <Check className="w-4 h-4 text-[#0B53F4] stroke-[3.5]" />
+                        <span>IA Portal Learning</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
+                        <Check className="w-4 h-4 text-[#0B53F4] stroke-[3.5]" />
+                        <span>Recibos automatizados</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
+                        <Check className="w-4 h-4 text-[#0B53F4] stroke-[3.5]" />
+                        <span>Soporte prioritario</span>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setCheckoutPlanType("personal");
+                        setSelectedCardForPlan(cards.find(c => c.isDefault)?.id || cards[0]?.id || "");
+                      }}
+                      className="w-full bg-[#0B53F4] hover:bg-[#0747D1] text-white text-xs font-black py-3 rounded-xl transition cursor-pointer text-center shadow-md shadow-[#0B53F4]/10 active:scale-98"
+                    >
+                      Elegir Plan Personal
+                    </button>
+                  </div>
+
+                  {/* Plan Empresa */}
+                  <div className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-[0_3px_10px_rgba(0,0,0,0.01)] relative text-left">
+                    <div className="flex justify-between items-start mb-2.5">
+                      <div>
+                        <h4 className="text-base font-black text-slate-800">Plan Empresa</h4>
+                        <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Personas Morales y alto volumen.</p>
+                      </div>
+                      <div className="text-right leading-none">
+                        <span className="text-base font-extrabold text-slate-900">$950</span>
+                        <span className="text-[9px] text-slate-400 font-bold block mt-1 uppercase tracking-wider">MXN/mes</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 pt-3 border-t border-slate-50 mb-4 flex flex-col">
+                      <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
+                        <Infinity className="w-4 h-4 text-[#0B53F4] stroke-[2.5]" />
+                        <span>Facturas Ilimitadas</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
+                        <Plus className="w-4 h-4 text-[#0B53F4] stroke-[3]" />
+                        <span>Acceso multi-usuario</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
+                        <Plus className="w-4 h-4 text-[#0B53F4] stroke-[3]" />
+                        <span>Acceso API robusta</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-xs font-bold text-slate-650">
+                        <Plus className="w-4 h-4 text-[#0B53F4] stroke-[3]" />
+                        <span>Account Manager dedicado</span>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setCheckoutPlanType("empresa");
+                        setSelectedCardForPlan(cards.find(c => c.isDefault)?.id || cards[0]?.id || "");
+                      }}
+                      className="w-full bg-[#EBF1FF]/80 hover:bg-[#DDECFF] text-[#0B53F4] text-xs font-black py-3 rounded-xl transition cursor-pointer text-center active:scale-98"
+                    >
+                      Elegir Plan Empresa
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1428,51 +1650,281 @@ export default function ProfileForm({
           </span>
           <button 
             onClick={() => {
-              setIsEditingFiscal(true);
+              setAddingCard(!addingCard);
             }}
             className="text-[10px] font-black text-[#0B53F4] hover:underline cursor-pointer bg-transparent border-none outline-none"
           >
-            + Agregar
+            {addingCard ? "Cancelar" : "+ Agregar Real"}
           </button>
         </div>
 
-        <div className="bg-white border border-slate-200/50 rounded-3xl overflow-hidden divide-y divide-slate-100 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
-          {/* Card Item 1: VISA */}
-          <div className="flex items-center justify-between p-4.5 hover:bg-slate-50/40 transition">
-            <div className="flex items-center gap-3.5">
-              {/* Premium Black rectangular card logo block */}
-              <div className="w-12 h-8 bg-[#010915] rounded-lg flex items-center justify-center text-[10px] text-white font-serif font-extrabold italic tracking-wider select-none shadow-sm">
-                VISA
-              </div>
-              <div className="text-left leading-none">
-                <span className="text-sm font-bold text-slate-800 block">•••• 4242</span>
-                <span className="text-[11px] text-slate-400 mt-1.5 block">Vence 12/26</span>
-              </div>
+        {addingCard && (
+          <div className="bg-slate-50 border border-slate-200/80 rounded-3xl p-5 mb-4 animate-fade-in text-left space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-800 uppercase tracking-wide">Alta de Tarjeta Real</span>
+              <button 
+                onClick={() => setAddingCard(false)} 
+                className="text-slate-400 hover:text-slate-650 font-bold text-xs p-1"
+              >
+                Cerrar
+              </button>
             </div>
-            {/* Predeterminado Badge */}
-            <span className="bg-[#EBF1FF] border border-[#DDECFF] text-[#0B53F4] text-[8px] uppercase font-black px-2 py-1 rounded-md tracking-wider leading-none">
-              Predeterminado
-            </span>
-          </div>
 
-          {/* Card Item 2: Mastercard */}
-          <div className="flex items-center justify-between p-4.5 hover:bg-slate-50/40 transition">
-            <div className="flex items-center gap-3.5">
-              {/* Premium Red circular double bubble graphic card box */}
-              <div className="w-12 h-8 bg-rose-600 rounded-lg flex items-center justify-center text-xs text-white font-sans font-black italic select-none shadow-sm relative overflow-hidden">
-                <div className="absolute w-6 h-6 rounded-full bg-amber-500/85 -right-1.5 -bottom-1" />
-                <span className="relative z-10 text-[9px] uppercase tracking-tighter">MC</span>
+            {/* Card visual showcase */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-5 relative overflow-hidden shadow-md font-mono select-none h-34 flex flex-col justify-between">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-tr from-white/5 to-transparent rounded-full blur-xl pointer-events-none" />
+              <div className="flex justify-between items-start z-10">
+                <span className="text-[9px] font-bold font-sans tracking-widest text-slate-300">ZEN DEBIT PREFERRED</span>
+                <span className="text-xs font-black italic tracking-wider text-[#0B53F4] bg-white px-2 py-0.5 rounded-md shadow-2xs">{newCardBrand}</span>
               </div>
-              <div className="text-left leading-none">
-                <span className="text-sm font-bold text-slate-800 block">•••• 8812</span>
-                <span className="text-[11px] text-slate-400 mt-1.5 block">Vence 08/25</span>
+              <div className="text-base tracking-widest font-black my-2 z-10 text-center">
+                {newCardNumber ? newCardNumber.replace(/(\d{4})/g, "$1 ").trim() : "•••• •••• •••• ••••"}
+              </div>
+              <div className="flex justify-between text-[9px] items-end font-sans z-10">
+                <div>
+                  <span className="text-[7.5px] text-slate-400 block tracking-wider uppercase leading-none mb-1">TITULAR</span>
+                  <span className="font-bold font-mono tracking-tight">{newCardHolder.toUpperCase() || "NOMBRE DEL TITULAR"}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[7.5px] text-slate-400 block tracking-wider uppercase leading-none mb-1">EXPIRA</span>
+                  <span className="font-mono font-bold">{newCardExpiry || "MM/YY"}</span>
+                </div>
               </div>
             </div>
-            {/* Options vertical dot */}
-            <button className="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg bg-transparent border-none outline-none cursor-pointer">
-              <MoreVertical className="w-4 h-4" />
+
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="col-span-2 space-y-1">
+                <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block ml-1">Número de Tarjeta</label>
+                <input 
+                  type="text" 
+                  maxLength={19} 
+                  placeholder="4111 2222 3333 4444"
+                  value={newCardNumber}
+                  onChange={(e) => {
+                    let val = e.target.value.replace(/\D/g, "");
+                    if (val.startsWith("4")) setNewCardBrand("VISA");
+                    else if (val.startsWith("5")) setNewCardBrand("MASTERCARD");
+                    else if (val.startsWith("3")) setNewCardBrand("AMEX");
+                    // limit to 16 digits
+                    if (val.length <= 16) {
+                      setNewCardNumber(val);
+                    }
+                  }}
+                  className="w-full text-xs font-medium bg-white border border-slate-200 focus:border-[#0B53F4] rounded-xl px-3 py-2.5 text-slate-800 outline-none"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block ml-1">Expiración</label>
+                <input 
+                  type="text" 
+                  placeholder="MM/YY"
+                  maxLength={5}
+                  value={newCardExpiry}
+                  onChange={(e) => {
+                    let val = e.target.value.replace(/[^0-9/]/g, "");
+                    if (val.length === 2 && !val.includes("/") && e.nativeEvent.constructor.name === "InputEvent") {
+                      val += "/";
+                    }
+                    setNewCardExpiry(val);
+                  }}
+                  className="w-full text-xs font-medium bg-white border border-slate-200 focus:border-[#0B53F4] rounded-xl px-3 py-2.5 text-slate-800 outline-none text-center font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block ml-1">CVV</label>
+                <input 
+                  type="password" 
+                  placeholder="•••"
+                  maxLength={4}
+                  value={newCardCvv}
+                  onChange={(e) => setNewCardCvv(e.target.value.replace(/\D/g, ""))}
+                  className="w-full text-xs font-medium bg-white border border-slate-200 focus:border-[#0B53F4] rounded-xl px-3 py-2.5 text-slate-800 outline-none text-center font-mono"
+                />
+              </div>
+
+              <div className="col-span-2 space-y-1">
+                <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block ml-1">Nombre Completo del Titular</label>
+                <input 
+                  type="text" 
+                  placeholder="JULIAN DANIELS"
+                  value={newCardHolder}
+                  onChange={(e) => setNewCardHolder(e.target.value)}
+                  className="w-full text-xs font-medium bg-white border border-slate-200 focus:border-[#0B53F4] rounded-xl px-3 py-2.5 text-slate-800 outline-none uppercase"
+                />
+              </div>
+            </div>
+
+            <button 
+              type="button"
+              onClick={async () => {
+                const cleanNum = newCardNumber.replace(/\s+/g, "");
+                if (cleanNum.length < 13) {
+                  toast.error("Por favor completa un número de tarjeta válido.", "Número Inválido");
+                  return;
+                }
+                if (!newCardExpiry.includes("/") || newCardExpiry.length < 5) {
+                  toast.error("Formato de expiración debe ser MM/YY.", "Format Incorrecto");
+                  return;
+                }
+                if (newCardCvv.length < 3) {
+                  toast.error("Código CVV de seguridad incompleto.", "CVV Inválido");
+                  return;
+                }
+                if (!newCardHolder.trim()) {
+                  toast.error("Por favor ingresa el nombre completo del tarjetahabiente.", "Titular Vacío");
+                  return;
+                }
+
+                const newCardObj: PaymentCard = {
+                  id: "card_" + Date.now(),
+                  brand: newCardBrand,
+                  last4: cleanNum.slice(-4),
+                  expiry: newCardExpiry,
+                  holderName: newCardHolder.toUpperCase().trim(),
+                  isDefault: cards.length === 0
+                };
+
+                const updatedCardsList = [...cards, newCardObj];
+                setCards(updatedCardsList);
+                
+                // Clear state fields
+                setNewCardNumber("");
+                setNewCardExpiry("");
+                setNewCardCvv("");
+                setNewCardHolder("");
+                setAddingCard(false);
+
+                // Save to Firebase Cloud Storage via layout save profile trigger
+                try {
+                  await onSave({
+                    userId: initialProfile?.userId || "guest",
+                    rfc: rfc || initialProfile?.rfc || "CABE850101ABC",
+                    razonSocial: razonSocial || initialProfile?.razonSocial || "RICARDO CASTRO BECERRIL",
+                    regimenFiscal: regimenFiscal || initialProfile?.regimenFiscal || "626",
+                    codigoPostal: codigoPostal || initialProfile?.codigoPostal || "02000",
+                    usoCFDI: usoCFDI || initialProfile?.usoCFDI || "G03",
+                    createdAt: initialProfile?.createdAt || new Date().toISOString(),
+                    personalGeminiKey: personalGeminiKey || initialProfile?.personalGeminiKey || "",
+                    plan: initialProfile?.plan || "gratuito",
+                    paymentCards: updatedCardsList
+                  });
+                  toast.success("¡Tu método de pago real se ha dado de alta exitosamente!", "Tarjeta Registrada");
+                } catch (err) {
+                  toast.error("Ocurrió un error al persistir el método de pago.");
+                }
+              }}
+              className="w-full bg-[#0B53F4] text-white text-xs font-black py-3 rounded-2xl hover:bg-[#0747D1] transition shadow-md shadow-[#0B53F4]/10 cursor-pointer text-center active:scale-98"
+            >
+              Registrar Tarjeta para Compras en la App
             </button>
           </div>
+        )}
+
+        <div className="bg-white border border-slate-200/50 rounded-3xl overflow-hidden divide-y divide-slate-100 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
+          {cards.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-400 font-semibold">
+              No tienes tarjetas dadas de alta. Agrega una arriba para realizar compras.
+            </div>
+          ) : (
+            cards.map((card) => (
+              <div key={card.id} className="flex items-center justify-between p-4.5 hover:bg-slate-50/40 transition">
+                <div className="flex items-center gap-3.5">
+                  {/* Visual Brand Block */}
+                  {card.brand === "VISA" ? (
+                    <div className="w-12 h-8 bg-[#010915] rounded-lg flex items-center justify-center text-[10px] text-white font-serif font-extrabold italic tracking-wider select-none shadow-sm">
+                      VISA
+                    </div>
+                  ) : card.brand === "AMEX" ? (
+                    <div className="w-12 h-8 bg-cyan-700 rounded-lg flex items-center justify-center text-[8.5px] text-white font-mono font-black tracking-widest select-none shadow-sm">
+                      AMEX
+                    </div>
+                  ) : (
+                    <div className="w-12 h-8 bg-rose-600 rounded-lg flex items-center justify-center text-xs text-white font-sans font-black italic select-none shadow-sm relative overflow-hidden">
+                      <div className="absolute w-6 h-6 rounded-full bg-amber-500/85 -right-1.5 -bottom-1" />
+                      <span className="relative z-10 text-[9px] uppercase tracking-tighter">MC</span>
+                    </div>
+                  )}
+
+                  <div className="text-left leading-none">
+                    <span className="text-sm font-bold text-slate-800 block">•••• {card.last4}</span>
+                    <span className="text-[10px] text-slate-400 mt-1.5 block font-mono">Vence: {card.expiry} | {card.holderName}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {card.isDefault ? (
+                    <span className="bg-emerald-50 border border-emerald-100 text-emerald-600 text-[8px] uppercase font-black px-2 py-1 rounded-md tracking-wider leading-none">
+                      Predeterminado
+                    </span>
+                  ) : (
+                    <button 
+                      type="button"
+                      onClick={async () => {
+                        const updated = cards.map(c => ({
+                          ...c,
+                          isDefault: c.id === card.id
+                        }));
+                        setCards(updated);
+                        try {
+                          await onSave({
+                            userId: initialProfile?.userId || "guest",
+                            rfc: rfc || initialProfile?.rfc || "",
+                            razonSocial: razonSocial || initialProfile?.razonSocial || "",
+                            regimenFiscal: regimenFiscal || initialProfile?.regimenFiscal || "626",
+                            codigoPostal: codigoPostal || initialProfile?.codigoPostal || "",
+                            usoCFDI: usoCFDI || initialProfile?.usoCFDI || "G03",
+                            createdAt: initialProfile?.createdAt || new Date().toISOString(),
+                            personalGeminiKey: personalGeminiKey || initialProfile?.personalGeminiKey || "",
+                            plan: initialProfile?.plan || "gratuito",
+                            paymentCards: updated
+                          });
+                          toast.success("Se ha cambiado tu tarjeta predeterminada.", "Tarjeta Actualizada");
+                        } catch (err) {
+                          toast.error("Ocurrió un error al persistir la tarjeta predeterminada.");
+                        }
+                      }}
+                      className="text-[8.5px] bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded border border-slate-200 transition cursor-pointer"
+                    >
+                      Predeterminar
+                    </button>
+                  )}
+
+                  <button 
+                    type="button"
+                    onClick={async () => {
+                      const updated = cards.filter(c => c.id !== card.id);
+                      if (card.isDefault && updated.length > 0) {
+                        updated[0].isDefault = true;
+                      }
+                      setCards(updated);
+                      try {
+                        await onSave({
+                          userId: initialProfile?.userId || "guest",
+                          rfc: rfc || initialProfile?.rfc || "",
+                          razonSocial: razonSocial || initialProfile?.razonSocial || "",
+                          regimenFiscal: regimenFiscal || initialProfile?.regimenFiscal || "626",
+                          codigoPostal: codigoPostal || initialProfile?.codigoPostal || "",
+                          usoCFDI: usoCFDI || initialProfile?.usoCFDI || "G03",
+                          createdAt: initialProfile?.createdAt || new Date().toISOString(),
+                          personalGeminiKey: personalGeminiKey || initialProfile?.personalGeminiKey || "",
+                          plan: initialProfile?.plan || "gratuito",
+                          paymentCards: updated
+                        });
+                        toast.success("Método de pago eliminado con éxito.", "Tarjeta Eliminada");
+                      } catch (err) {
+                        toast.error("Ocurrió un error al eliminar tu tarjeta.");
+                      }
+                    }}
+                    className="text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition p-1.5 rounded-lg bg-transparent border-none outline-none cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

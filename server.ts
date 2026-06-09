@@ -1108,7 +1108,7 @@ app.post("/api/automation/run", async (req: Request, res: Response): Promise<voi
       xmlContent: generateLocalXml(ticket, profile, connector, generatedFolioFiscal),
       pdfHtml: generateLocalPdfHtml(ticket, profile, connector, generatedFolioFiscal),
       folioFiscal: generatedFolioFiscal,
-      cost: connector?.learnedFrom === "automatizacion_ticket" ? 1.50 : 0.25,
+      cost: connector?.learnedFrom === "automatizacion_ticket" ? 1.50 : 2.50,
       rawCost: 0
     });
     return;
@@ -1155,7 +1155,7 @@ app.post("/api/automation/run", async (req: Request, res: Response): Promise<voi
     const generatedInvoicing = JSON.parse(textResult.trim());
     res.json({
       ...generatedInvoicing,
-      cost: connector?.learnedFrom === "automatizacion_ticket" ? 15.00 : 0.25,
+      cost: connector?.learnedFrom === "automatizacion_ticket" ? 15.00 : 2.50,
       rawCost: parseFloat(rawCost.toFixed(6))
     });
   } catch (error: any) {
@@ -1169,7 +1169,7 @@ app.post("/api/automation/run", async (req: Request, res: Response): Promise<voi
       xmlContent: xml,
       pdfHtml: pdf,
       folioFiscal: generatedFolioFiscal,
-      cost: connector?.learnedFrom === "automatizacion_ticket" ? 1.50 : 0.25,
+      cost: connector?.learnedFrom === "automatizacion_ticket" ? 1.50 : 2.50,
       rawCost: 0
     });
   }

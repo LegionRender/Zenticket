@@ -1,3 +1,12 @@
+export interface PaymentCard {
+  id: string;
+  brand: "VISA" | "MASTERCARD" | "AMEX";
+  last4: string;
+  expiry: string;
+  isDefault: boolean;
+  holderName: string;
+}
+
 export interface FiscalProfile {
   userId: string;
   rfc: string;
@@ -8,6 +17,8 @@ export interface FiscalProfile {
   createdAt: string;
   updatedAt?: string;
   personalGeminiKey?: string; // Optional user's custom Gemini API key to optimize complex processes
+  plan?: "gratuito" | "personal" | "empresa"; // Active user plan
+  paymentCards?: PaymentCard[]; // Registered cards
 }
 
 export interface TicketItem {
@@ -29,7 +40,7 @@ export interface Ticket {
   id?: string;
   userId: string;
   imageUrl: string;
-  status: "extracted" | "processing" | "completed" | "failed";
+  status: "extracted" | "processing" | "completed" | "failed" | "review";
   rfcEmisor?: string;
   nombreEmisor?: string;
   fechaCompra?: string;
@@ -43,6 +54,7 @@ export interface Ticket {
   createdAt: string;
   cost?: number; // OCR cost
   rawCost?: number; // Raw model token-based cost
+  learningApprovedByAdmin?: boolean;
 }
 
 export interface ConnectorField {

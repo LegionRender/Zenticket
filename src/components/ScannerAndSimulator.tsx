@@ -405,7 +405,7 @@ export default function ScannerAndSimulator({
         extractedData.rfcEmisor,
         extractedData.nombreEmisor,
         extractedData.total,
-        invoiceData.cost !== undefined ? invoiceData.cost : (isConnectorNewlyLearned ? 15.00 : 0.25),
+        invoiceData.cost !== undefined ? invoiceData.cost : (isConnectorNewlyLearned ? 15.00 : 2.50),
         isConnectorNewlyLearned ? "nuevo" : "existente",
         invoiceData.rawCost !== undefined ? invoiceData.rawCost : 0
       );
@@ -608,28 +608,36 @@ export default function ScannerAndSimulator({
                   {/* Procesado Card with live calculated values */}
                   <div className="bg-white/10 backdrop-blur-xs border border-white/10 rounded-2xl p-4 text-left">
                     <span className="text-[11px] text-white/70 font-medium block">
-                      Procesado
+                      Procesados
                     </span>
                     <span className="text-xl font-extrabold text-white mt-1 block">
-                      {tickets.filter(t => t.status === "completed").length > 0 
-                        ? new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(
-                            tickets.filter(t => t.status === "completed").reduce((sum, t) => sum + (t.total || 0), 0)
-                          )
-                        : "$1,240.50"
-                      }
+                      {(() => {
+                        const comp = tickets.filter(t => t.status === "completed").length;
+                        return `${comp} ${comp === 1 ? 'ticket' : 'tickets'}`;
+                      })()}
+                    </span>
+                    <span className="text-[10px] text-blue-200 block mt-1 font-semibold leading-normal">
+                      {(() => {
+                        const comp = tickets.filter(t => t.status === "completed").length;
+                        const plan = fiscalProfile?.plan || "gratuito";
+                        const limit = plan === "personal" ? 100 : plan === "empresa" ? 5000 : 5;
+                        const label = plan === "empresa" ? "Ilimitado" : `${limit}`;
+                        const rem = plan === "empresa" ? "Ilimitados" : `${Math.max(limit - comp, 0)}`;
+                        return `Quedan: ${rem} (Límite: ${label})`;
+                      })()}
                     </span>
                   </div>
 
                   {/* Pendiente Card with live count */}
                   <div className="bg-white/10 backdrop-blur-xs border border-white/10 rounded-2xl p-4 text-left">
                     <span className="text-[11px] text-white/70 font-medium block">
-                      Pendiente
+                      En Seguimiento
                     </span>
                     <span className="text-xl font-extrabold text-white mt-1 block">
-                      {tickets.length > 0
-                        ? `${tickets.filter(t => t.status !== "completed").length} Tickets`
-                        : "12 Tickets"
-                      }
+                      {tickets.filter(t => t.status !== "completed").length} {tickets.filter(t => t.status !== "completed").length === 1 ? "ticket" : "tickets"}
+                    </span>
+                    <span className="text-[10px] text-blue-200 block mt-1 font-semibold leading-normal">
+                      Tickets pendientes
                     </span>
                   </div>
                 </div>
@@ -732,12 +740,7 @@ export default function ScannerAndSimulator({
                         return (
                           <div 
                             key={t.id || idx} 
-                            onClick={t.id ? () => {
-                              // Feed into simulation directly
-                              const ev = new CustomEvent("simulate-ticket", { detail: { id: t.id } });
-                              window.dispatchEvent(ev);
-                            } : undefined}
-                            className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition cursor-pointer"
+                            className="flex items-center justify-between p-4 bg-transparent"
                           >
                             <div className="flex items-center gap-3.5">
                               <div className="w-11 h-11 rounded-full bg-[#ebf1ff] flex items-center justify-center shrink-0">
@@ -764,7 +767,7 @@ export default function ScannerAndSimulator({
                                   ? "text-rose-500 uppercase" 
                                   : "text-amber-600 uppercase"
                               }`}>
-                                {t.status === "completed" ? "✓ PAGADO" : t.status === "failed" ? "⚠ RECHAZADO" : "⊙ PENDIENTE"}
+                                {t.status === "completed" ? "✓ PROCESADO" : t.status === "failed" ? "⚠ RECHAZADO" : "⊙ PENDIENTE"}
                               </span>
                             </div>
                           </div>
@@ -772,97 +775,10 @@ export default function ScannerAndSimulator({
                       })}
                     </div>
                   ) : (
-                    /* Show the exact 3 high-fidelity items from the screenshot when database has no tickets yet! */
-                    <div className="divide-y divide-slate-100">
-                      {/* Item #1: Mercadona PENDIENTE */}
-                      <div 
-                        onClick={() => handleSelectSample("walmart")}
-                        title="Hacer clic para simular la captura de este ticket con IA"
-                        className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition cursor-pointer group"
-                      >
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-11 h-11 rounded-full bg-[#ebf1ff] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                            <ShoppingBag className="w-5 h-5 text-[#0b53f4] stroke-[2]" />
-                          </div>
-                          <div className="text-left leading-tight">
-                            <span className="text-sm font-bold text-slate-800 block">
-                              Mercadona
-                            </span>
-                            <span className="text-xs text-slate-400 mt-1 block">
-                              Hoy, 10:45 AM
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-sm font-extrabold text-slate-800 block">
-                            $42.30
-                          </span>
-                          <span className="text-[10px] font-bold tracking-wider text-amber-500 mt-1 block uppercase leading-none">
-                            ⊙ PENDIENTE
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Item #2: Repsol PAGADO */}
-                      <div 
-                        onClick={() => handleSelectSample("oxxo")}
-                        title="Hacer clic para simular la captura de este ticket con IA"
-                        className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition cursor-pointer group"
-                      >
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-11 h-11 rounded-full bg-[#ebf1ff] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                            <Fuel className="w-5 h-5 text-[#0b53f4] stroke-[2]" />
-                          </div>
-                          <div className="text-left leading-tight">
-                            <span className="text-sm font-bold text-slate-800 block">
-                              Repsol
-                            </span>
-                            <span className="text-xs text-slate-400 mt-1 block">
-                              Ayer, 06:12 PM
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-sm font-extrabold text-slate-800 block">
-                            $65.00
-                          </span>
-                          <span className="text-[10px] font-bold tracking-wider text-emerald-600 mt-1 block uppercase leading-none">
-                            ✓ PAGADO
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Item #3: La Rollerie RECHAZADO */}
-                      <div 
-                        onClick={() => handleSelectSample("starbucks")}
-                        title="Hacer clic para simular la captura de este ticket con IA"
-                        className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition cursor-pointer group"
-                      >
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-11 h-11 rounded-full bg-[#ebf1ff] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                            <Utensils className="w-5 h-5 text-[#0b53f4] stroke-[2]" />
-                          </div>
-                          <div className="text-left leading-tight">
-                            <span className="text-sm font-bold text-slate-800 block">
-                              La Rollerie
-                            </span>
-                            <span className="text-xs text-slate-400 mt-1 block">
-                              15 Oct, 02:30 PM
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-sm font-extrabold text-slate-800 block">
-                            $18.90
-                          </span>
-                          <span className="text-[10px] font-bold tracking-wider text-rose-500 mt-1 block uppercase leading-none">
-                            ⚠ RECHAZADO
-                          </span>
-                        </div>
-                      </div>
+                    <div className="p-8 text-center bg-white">
+                      <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-xs text-slate-500 font-bold">No hay actividad reciente en tu cuenta.</p>
+                      <p className="text-[10px] text-slate-400 mt-1">Sube el ticket de tu compra comercial para ver su estado aquí en tiempo real.</p>
                     </div>
                   )}
                 </div>

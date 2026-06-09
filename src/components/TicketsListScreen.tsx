@@ -250,23 +250,9 @@ export default function TicketsListScreen({
     }
   };
 
-  // Merge simulated in-progress with user tickets in progress
-  const userInProgress = tickets.filter(t => t.status !== "completed");
-  const visibleInProgress = [...userInProgress];
-  
-  // If user has zero in progress, populate with default high fidelity items from screenshot
-  const inProgressList = visibleInProgress.length > 0 
-    ? visibleInProgress 
-    : MOCK_ACTIVE_TICKETS;
-
-  // Merge simulated completed with user real invoices database
-  const userInvoices = invoices;
-  
-  // We combine mock completed invoices with the real database records
-  const allInvoicesMerged = [...userInvoices, ...MOCK_EMITTED_INVOICES];
-  
-  // Deduplicate by name and total just in case, but keep simple
-  const emittedInvoicesList = allInvoicesMerged;
+  // Use strictly real user data here, with absolutely no simulation/mock data.
+  const inProgressList = tickets.filter(t => t.status !== "completed");
+  const emittedInvoicesList = invoices;
 
   // Handle opening the details view
   const activeInvoiceData = emittedInvoicesList.find(inv => inv.id === selectedInvoiceId);
