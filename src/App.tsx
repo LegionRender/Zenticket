@@ -5,7 +5,8 @@ import {
 } from "firebase/firestore";
 import { 
   signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User, signInAnonymously,
-  createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendEmailVerification
+  createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendEmailVerification,
+  signInWithRedirect, getRedirectResult
 } from "firebase/auth";
 import { FiscalProfile, Ticket, Connector, Invoice } from "./types";
 import { handleFirestoreError, OperationType } from "./lib/firestore-helper";
@@ -291,6 +292,37 @@ export default function App() {
     return unsubscribe;
   }, []);
 
+  // Monitor Google Sign In redirects for cross-site cookie restrictions
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          toast.success("¡Sesión iniciada con Google con éxito!", "Bienvenido de vuelta");
+        }
+      })
+      .catch((error: any) => {
+        console.error("Redirect Auth error:", error);
+        const errorCode = error?.code;
+        if (errorCode === "auth/unauthorized-domain") {
+          toast.error(
+            "El dominio 'zenticket.mx' no está autorizado en la Consola Firebase. Ve a Firebase Console > Authentication > Settings > Dominios Autorizados y agrega 'zenticket.mx'.",
+            "Dominio No Autorizado",
+            { duration: 15000 }
+          );
+        } else if (errorCode === "auth/operation-not-allowed") {
+          toast.error(
+            "Google como método de inicio de sesión no está habilitado en tu Consola Firebase > Authentication > Sign-in method.",
+            "Google Deshabilitado"
+          );
+        } else if (errorCode && errorCode !== "auth/web-storage-unsupported") {
+          toast.error(
+            `Detalle del error de redirección: ${errorCode || error.message || error}.`,
+            "Error de Inicio de Sesión"
+          );
+        }
+      });
+  }, []);
+
   // Load connectors & seed defaults
   useEffect(() => {
     if (!activeUserId) return;
@@ -398,6 +430,7 @@ export default function App() {
   // Sign In / Out Handlers
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
     setAuthLoading(true);
     try {
       await signInWithPopup(auth, provider);
@@ -414,7 +447,7 @@ export default function App() {
         );
       } else if (errorCode === "auth/popup-blocked") {
         toast.info(
-          "Tu navegador bloqueó la ventana emergente de Google. Habilita las ventanas emergentes para este sitio e inténtalo de nuevo.",
+          "Tu navegador bloqueó la ventana emergente de Google. Habilita las ventanas emergentes o inténtalo usando el método de redirección.",
           "Ventana Emergente Bloqueada"
         );
       } else if (errorCode === "auth/operation-not-allowed") {
@@ -426,11 +459,27 @@ export default function App() {
         toast.info("Acceso cancelado.", "Operación Cancelada");
       } else {
         toast.error(
-          `Detalle del error: ${errorCode || error.message || error}. Por favor, verifica la configuración de Dominios Autorizados de Firebase.`,
+          `Detalle del error: ${errorCode || error.message || error}. Si estás en Safari/iOS/Móvil o tienes bloqueador de popups, usa el Método de Redirección.`,
           "Error de Inicio de Sesión"
         );
       }
     } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleLoginRedirect = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    setAuthLoading(true);
+    try {
+      await signInWithRedirect(auth, provider);
+    } catch (error: any) {
+      console.error("Google Redirect error:", error);
+      toast.error(
+        `Ocurrió un error al iniciar la redirección de Google: ${error.message || error}.`,
+        "Error de Redirección"
+      );
       setAuthLoading(false);
     }
   };
@@ -1571,28 +1620,45 @@ export default function App() {
                     <div className="flex-grow border-t border-slate-200/80"></div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={handleGoogleLogin}
-                      className="flex items-center justify-center gap-1.5 text-[11px] font-extrabold text-slate-700 bg-white border border-slate-200 hover:border-slate-300 py-3 rounded-2xl transition active:scale-[0.98] cursor-pointer shadow-xs"
-                    >
-                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                        <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.65 1.39 7.56l3.85 2.99c.9-2.73 3.45-4.51 6.76-4.51z"/>
-                        <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.73 2.89c2.18-2 3.7-4.98 3.7-8.62z"/>
-                        <path fill="#FBBC05" d="M5.24 14.45c-.23-.69-.37-1.42-.37-2.18s.14-1.49.37-2.18L1.39 7.1C.5 8.9 0 10.9 0 13s.5 4.1 1.39 5.9l3.85-2.45z"/>
-                        <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.73-2.89c-1.1.74-2.51 1.18-4.23 1.18-3.31 0-5.86-1.78-6.76-4.51L1.39 16.3C3.37 20.35 7.35 23 12 23z"/>
-                      </svg>
-                      <span>Google Login</span>
-                    </button>
+                  <div className="space-y-3 w-full">
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        className="flex items-center justify-center gap-1.5 text-[11px] font-extrabold text-slate-700 bg-white border border-slate-200 hover:border-slate-300 py-3 rounded-2xl transition active:scale-[0.98] cursor-pointer shadow-xs"
+                        title="Inicia sesión con Google mediante una ventana emergente rápida."
+                      >
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                          <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.65 1.39 7.56l3.85 2.99c.9-2.73 3.45-4.51 6.76-4.51z"/>
+                          <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.73 2.89c2.18-2 3.7-4.98 3.7-8.62z"/>
+                          <path fill="#FBBC05" d="M5.24 14.45c-.23-.69-.37-1.42-.37-2.18s.14-1.49.37-2.18L1.39 7.1C.5 8.9 0 10.9 0 13s.5 4.1 1.39 5.9l3.85-2.45z"/>
+                          <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.73-2.89c-1.1.74-2.51 1.18-4.23 1.18-3.31 0-5.86-1.78-6.76-4.51L1.39 16.3C3.37 20.35 7.35 23 12 23z"/>
+                        </svg>
+                        <span>Google (Popup)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleEnterSandbox}
+                        className="flex items-center justify-center gap-1.5 text-[11px] font-extrabold text-slate-705 bg-slate-50 border border-slate-200/80 hover:bg-slate-100 py-3 rounded-2xl transition active:scale-[0.98] cursor-pointer"
+                      >
+                        <PlayCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span>Modo Sandbox</span>
+                      </button>
+                    </div>
 
                     <button
                       type="button"
-                      onClick={handleEnterSandbox}
-                      className="flex items-center justify-center gap-1.5 text-[11px] font-extrabold text-slate-700 bg-slate-50 border border-slate-200/80 hover:bg-slate-100 py-3 rounded-2xl transition active:scale-[0.98] cursor-pointer"
+                      onClick={handleGoogleLoginRedirect}
+                      className="w-full flex items-center justify-center gap-2 text-[10px] font-extrabold text-[#0B53F4] bg-[#EBF1FF]/40 border border-[#0B53F4]/20 hover:bg-[#EBF1FF]/80 py-2.5 rounded-2xl transition active:scale-[0.98] cursor-pointer"
+                      title="Método robusto recomendado si la ventana emergente de Google se cierra sola o está bloqueada por Safari, iOS, modo incógnito o bloqueadores."
                     >
-                      <PlayCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                      <span>Modo Sandbox</span>
+                      <svg className="w-3.5 h-3.5 text-[#0B53F4] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                      <span>¿La ventana emergente falla? Iniciar por Redirección</span>
                     </button>
                   </div>
                 </div>
