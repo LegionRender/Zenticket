@@ -27,7 +27,6 @@ export default function VaultScreen({ invoices, onTabChange }: VaultScreenProps)
   const getRealCategorySum = (categoryLabel: string) => {
     return invoices.reduce((sum, inv) => {
       const emisor = (inv.nombreEmisor || "").toLowerCase();
-      const emisorRfc = (inv.rfcEmisor || "").toLowerCase();
       
       if (categoryLabel === "Alimentación" && (
         emisor.includes("starbucks") || 
@@ -117,252 +116,283 @@ export default function VaultScreen({ invoices, onTabChange }: VaultScreenProps)
   const maxMonthTotal = Math.max(...monthlyAggregates.map(m => m.total), 1);
 
   return (
-    <div className="max-w-xl mx-auto space-y-6 font-sans text-left mt-2 relative select-none pb-24">
-      {/* 1. BLUE CARD - TOTAL GASTOS */}
-      <div className="bg-[#0B53F4] text-white rounded-3xl p-6 shadow-md relative overflow-hidden select-none">
-        {/* Subtle white circle back accent */}
-        <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-tr from-white/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+    <div className="max-w-6xl mx-auto space-y-8 font-sans text-left mt-2 relative select-none pb-24">
+      {/* 1. HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Bóveda Digital</h1>
+          <p className="text-xs text-slate-400 mt-1">Monitorea la acumulación de tus facturas SAT y distribución de gastos corporativos.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200">
+            Último Mes: <strong className="text-[#0B53F4]">{months[currentMonthIdx]}</strong>
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Top title and month selection label */}
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-black text-blue-200 uppercase tracking-widest block font-sans">
-            TOTAL GASTOS REALES (MES)
-          </span>
-          <span className="bg-white/15 backdrop-blur-md text-[10.5px] font-bold text-white px-3.5 py-1 rounded-full leading-none">
-            {months[currentMonthIdx]}
-          </span>
-        </div>
-
-        {/* Large cash indicator */}
-        <div className="flex items-baseline mt-4 leading-none font-sans">
-          <span className="text-2xl font-black text-blue-200 mr-1.5">$</span>
-          <span className="text-4xl font-extrabold tracking-tight">
-            {formatCurrency(realTotalSpent)}
-          </span>
-        </div>
-
-        {/* Lower pill values */}
-        <div className="flex items-center gap-3.5 mt-5 text-[11px] font-bold leading-none">
-          <span className="bg-white/15 px-3 py-1.5 rounded-full flex items-center gap-1.5">
-            Realizado
-          </span>
-          <span className="text-blue-100/90 font-mono">
-            {realTransactionsCount} {realTransactionsCount === 1 ? "transacción" : "transacciones"}
-          </span>
-        </div>
-      </div>
-
-      {/* 2. EVOLUCIÓN HISTORIC MINI-CHART CARD */}
-      <div className="bg-white border border-slate-200/50 rounded-3xl p-5.5 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-black text-slate-800 tracking-tight font-sans">Evolución de Gastos</h3>
-          <span className="text-xs font-black text-[#0B53F4] font-sans">
-            {months[currentMonthIdx]}: ${realTotalSpent.toFixed(2)}
-          </span>
-        </div>
-
-        {/* Dynamic graphic bars aligned horizontally */}
-        <div className="flex items-end justify-between h-36 pt-6 pb-2.5 px-3">
-          {monthlyAggregates.map((m, idx) => {
-            const heightPercent = maxMonthTotal > 0 ? (m.total / maxMonthTotal) * 100 : 0;
-            const isActive = idx === 3;
-            return (
-              <div key={idx} className="flex flex-col items-center flex-1 max-w-[42px] h-full justify-end">
-                <div className="w-full flex-1 flex items-end justify-center mb-1.5">
-                  <div 
-                    className={`w-9 rounded-t-lg transition-all ${
-                      isActive 
-                        ? "bg-[#0B53F4] shadow-sm hover:bg-[#0747D1]" 
-                        : "bg-[#EBF1FF] hover:bg-[#D7E4FF]"
-                    }`} 
-                    style={{ height: `${Math.max(heightPercent, 4)}%` }} // Minimum height 4% for design aesthetics
-                    title={`${m.label}: $${m.total.toFixed(2)}`}
-                  />
-                </div>
-                <span className={`text-[11px] font-bold ${isActive ? "text-[#0B53F4] font-extrabold" : "text-slate-400"}`}>
-                  {m.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 3. DISTRIBUCIÓN PROGRESS INDICATORS CARD */}
-      <div className="bg-white border border-slate-200/50 rounded-3xl p-5.5 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
-        <div className="flex items-center justify-between pb-3.5">
-          <h3 className="text-base font-black text-slate-800 tracking-tight font-sans">Distribución por Categorías</h3>
-          <PieChart className="w-4.5 h-4.5 text-slate-400 stroke-[2.3]" />
-        </div>
-
-        {/* Core breakdown progress values bar by bar */}
-        <div className="space-y-4">
-          {/* Alimentación Bar */}
-          <div className="space-y-1.5 text-left">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-extrabold text-slate-800 font-sans">Alimentación</span>
-              <span className="text-xs text-slate-500 font-medium font-sans">
-                ${alimentacionSum.toFixed(2)} ({realTotalSpent > 0 ? Math.round((alimentacionSum / realTotalSpent) * 100) : 0}%)
-              </span>
-            </div>
-            <div className="w-full bg-[#EBF1FF]/70 h-1.5 rounded-full overflow-hidden">
-              <div 
-                className="bg-[#0B53F4] h-full rounded-full transition-all duration-300" 
-                style={{ width: `${realTotalSpent > 0 ? (alimentacionSum / realTotalSpent) * 100 : 0}%` }} 
-              />
-            </div>
-          </div>
-
-          {/* Compras Bar */}
-          <div className="space-y-1.5 text-left">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-extrabold text-slate-800 font-sans">Compras</span>
-              <span className="text-xs text-slate-500 font-medium font-sans">
-                ${comprasSum.toFixed(2)} ({realTotalSpent > 0 ? Math.round((comprasSum / realTotalSpent) * 100) : 0}%)
-              </span>
-            </div>
-            <div className="w-full bg-[#EBF1FF]/70 h-1.5 rounded-full overflow-hidden">
-              <div 
-                className="bg-[#3B82F6] h-full rounded-full transition-all duration-300" 
-                style={{ width: `${realTotalSpent > 0 ? (comprasSum / realTotalSpent) * 100 : 0}%` }} 
-              />
-            </div>
-          </div>
-
-          {/* Transporte Bar */}
-          <div className="space-y-1.5 text-left">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-extrabold text-slate-800 font-sans">Transporte</span>
-              <span className="text-xs text-slate-500 font-medium font-sans">
-                ${transporteSum.toFixed(2)} ({realTotalSpent > 0 ? Math.round((transporteSum / realTotalSpent) * 100) : 0}%)
-              </span>
-            </div>
-            <div className="w-full bg-[#EBF1FF]/70 h-1.5 rounded-full overflow-hidden">
-              <div 
-                className="bg-[#10B981] h-full rounded-full transition-all duration-300" 
-                style={{ width: `${realTotalSpent > 0 ? (transporteSum / realTotalSpent) * 100 : 0}%` }} 
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. TITLE DESGLOSE POR CATEGORÍA */}
-      <div className="text-left pt-2">
-        <h2 className="text-lg font-extrabold text-slate-800 tracking-tight font-sans">Desglose por Categoría</h2>
-      </div>
-
-      {/* 2X2 CATEGORIES GRID CAPSULES */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Alimentación Box */}
-        <div className="bg-white border border-slate-200/55 p-5 rounded-3xl shadow-[0_4px_20px_rgba(15,23,42,0.02)] hover:border-slate-300 transition text-left flex flex-col justify-between">
-          <div className="w-10 h-10 bg-[#0B53F4]/10 rounded-full flex items-center justify-center text-[#0B53F4] mb-3.5 self-start">
-            <Utensils className="w-5.5 h-5.5 stroke-[2.3]" />
-          </div>
-          <div className="leading-tight">
-            <span className="text-xs text-slate-400 font-bold block font-sans">Alimentación</span>
-            <span className="text-base font-black text-slate-800 mt-1 block font-sans">
-              ${alimentacionSum.toFixed(2)}
-            </span>
-          </div>
-        </div>
-
-        {/* Transporte Box */}
-        <div className="bg-white border border-slate-200/55 p-5 rounded-3xl shadow-[0_4px_20px_rgba(15,23,42,0.02)] hover:border-slate-300 transition text-left flex flex-col justify-between">
-          <div className="w-10 h-10 bg-[#10B981]/10 rounded-full flex items-center justify-center text-[#10B981] mb-3.5 self-start">
-            <Car className="w-5.5 h-5.5 stroke-[2.3]" />
-          </div>
-          <div className="leading-tight">
-            <span className="text-xs text-slate-400 font-bold block font-sans">Transporte</span>
-            <span className="text-base font-black text-slate-800 mt-1 block font-sans">
-              ${transporteSum.toFixed(2)}
-            </span>
-          </div>
-        </div>
-
-        {/* Vivienda Box */}
-        <div className="bg-white border border-slate-200/55 p-5 rounded-3xl shadow-[0_4px_20px_rgba(15,23,42,0.02)] hover:border-slate-300 transition text-left flex flex-col justify-between">
-          <div className="w-10 h-10 bg-[#EF4444]/10 rounded-full flex items-center justify-center text-[#EF4444] mb-3.5 self-start">
-            <Home className="w-5.5 h-5.5 stroke-[2.3]" />
-          </div>
-          <div className="leading-tight">
-            <span className="text-xs text-slate-400 font-bold block font-sans">Vivienda</span>
-            <span className="text-base font-black text-slate-800 mt-1 block font-sans">
-              ${viviendaSum.toFixed(2)}
-            </span>
-          </div>
-        </div>
-
-        {/* Compras Box */}
-        <div className="bg-white border border-slate-200/55 p-5 rounded-3xl shadow-[0_4px_20px_rgba(15,23,42,0.02)] hover:border-slate-300 transition text-left flex flex-col justify-between">
-          <div className="w-10 h-10 bg-[#3B82F6]/10 rounded-full flex items-center justify-center text-[#3B82F6] mb-3.5 self-start">
-            <ShoppingBag className="w-5.5 h-5.5 stroke-[2.3]" />
-          </div>
-          <div className="leading-tight">
-            <span className="text-xs text-slate-400 font-bold block font-sans">Compras</span>
-            <span className="text-base font-black text-slate-800 mt-1 block font-sans">
-              ${comprasSum.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. TITLE ÚLTIMOS GASTOS & LINK ROW */}
-      <div className="flex items-center justify-between pt-2 px-0.5">
-        <h2 className="text-lg font-extrabold text-slate-800 tracking-tight font-sans">Últimos Gastos Reales</h2>
-        <button
-          type="button"
-          onClick={() => {
-            if (onTabChange) {
-              onTabChange("tickets");
-              toast.info("Mostrando detalle completo de tickets de facturación.", "Tickets Guardados");
-            }
-          }}
-          className="text-xs font-bold text-[#0B53F4] hover:underline cursor-pointer bg-transparent"
-        >
-          Ver todo
-        </button>
-      </div>
-
-      {/* TRANSACTION ITEMS LOGS PANEL */}
-      <div className="space-y-3.5">
-        {invoices.length === 0 ? (
-          <div className="bg-white border border-dashed border-slate-200/80 p-8 rounded-3xl text-center">
-            <Info className="w-7 h-7 text-slate-300 mx-auto mb-2" />
-            <p className="text-xs text-slate-450 font-bold">No has registrado facturas aún en el SAT para este periodo.</p>
-          </div>
-        ) : (
-          invoices.slice(0, 5).map((inv) => {
-            const emName = inv.nombreEmisor || "Emisor";
-            const isTransport = emName.toLowerCase().includes("uber") || emName.toLowerCase().includes("didi") || emName.toLowerCase().includes("repsol") || emName.toLowerCase().includes("gas");
-            const isAli = emName.toLowerCase().includes("starbucks") || emName.toLowerCase().includes("coffee") || emName.toLowerCase().includes("cafe") || emName.toLowerCase().includes("restaurante") || emName.toLowerCase().includes("oxxo");
+        {/* LEFT COLUMN - STATS & CHART (lg:col-span-7) */}
+        <div className="lg:col-span-7 space-y-6">
+          
+          {/* TOTAL GASTOS CARD */}
+          <div className="bg-[#0B53F4] text-white rounded-3xl p-6 shadow-md relative overflow-hidden select-none">
+            {/* Subtle white circle back accent */}
+            <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-tr from-white/10 to-transparent rounded-full blur-2xl pointer-events-none" />
             
-            return (
-              <div key={inv.id || inv.folioFiscal} className="bg-white border border-slate-200/55 rounded-3xl p-4.5 flex items-center justify-between shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
-                <div className="flex items-center gap-3.5 text-left">
-                  <div className="w-10 h-10 bg-[#0B53F4]/10 rounded-full flex items-center justify-center text-[#0B53F4] shrink-0">
-                    {isTransport ? (
-                      <Car className="w-5 h-5 stroke-[2.2]" />
-                    ) : isAli ? (
-                      <Utensils className="w-5 h-5 stroke-[2.2]" />
-                    ) : (
-                      <FileText className="w-5 h-5 stroke-[2.2]" />
-                    )}
-                  </div>
-                  <div className="leading-tight max-w-[240px]">
-                    <span className="text-sm font-black text-slate-800 block truncate font-sans">{emName}</span>
-                    <span className="text-xs text-slate-400 block mt-0.5 font-sans">
-                      {new Date(inv.createdAt).toLocaleString("es-MX", { dateStyle: "short" })} • {isTransport ? "Transporte" : isAli ? "Alimentación" : "Compras"}
+            {/* Top title and month selection label */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black text-blue-200 uppercase tracking-widest block font-sans">
+                TOTAL GASTOS REALES (MES)
+              </span>
+              <span className="bg-white/15 backdrop-blur-md text-[10.5px] font-bold text-white px-3.5 py-1 rounded-full leading-none">
+                {months[currentMonthIdx]}
+              </span>
+            </div>
+
+            {/* Large cash indicator */}
+            <div className="flex items-baseline mt-4 leading-none font-sans">
+              <span className="text-2xl font-black text-blue-200 mr-1.5">$</span>
+              <span className="text-4xl font-extrabold tracking-tight">
+                {formatCurrency(realTotalSpent)}
+              </span>
+            </div>
+
+            {/* Lower pill values */}
+            <div className="flex items-center gap-3.5 mt-5 text-[11px] font-bold leading-none">
+              <span className="bg-white/15 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                Realizado
+              </span>
+              <span className="text-blue-100/90 font-mono">
+                {realTransactionsCount} {realTransactionsCount === 1 ? "transacción" : "transacciones"}
+              </span>
+            </div>
+          </div>
+
+          {/* EVOLUCIÓN HISTORIC MINI-CHART CARD */}
+          <div className="bg-white border border-slate-200/50 rounded-3xl p-5.5 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-slate-800 tracking-tight font-sans">Evolución de Gastos</h3>
+              <span className="text-xs font-black text-[#0B53F4] font-sans">
+                {months[currentMonthIdx]}: ${realTotalSpent.toFixed(2)}
+              </span>
+            </div>
+
+            {/* Dynamic graphic bars aligned horizontally */}
+            <div className="flex items-end justify-between h-36 pt-6 pb-2.5 px-3">
+              {monthlyAggregates.map((m, idx) => {
+                const heightPercent = maxMonthTotal > 0 ? (m.total / maxMonthTotal) * 100 : 0;
+                const isActive = idx === 3;
+                return (
+                  <div key={idx} className="flex flex-col items-center flex-1 max-w-[42px] h-full justify-end">
+                    <div className="w-full flex-1 flex items-end justify-center mb-1.5">
+                      <div 
+                        className={`w-9 rounded-t-lg transition-all ${
+                          isActive 
+                            ? "bg-[#0B53F4] shadow-sm hover:bg-[#0747D1]" 
+                            : "bg-[#EBF1FF] hover:bg-[#D7E4FF]"
+                        }`} 
+                        style={{ height: `${Math.max(heightPercent, 4)}%` }} // Minimum height 4% for design aesthetics
+                        title={`${m.label}: $${m.total.toFixed(2)}`}
+                      />
+                    </div>
+                    <span className={`text-[11px] font-bold ${isActive ? "text-[#0B53F4] font-extrabold" : "text-slate-400"}`}>
+                      {m.label}
                     </span>
                   </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ÚLTIMOS GASTOS REALES */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pt-2 px-0.5">
+              <h2 className="text-lg font-extrabold text-slate-800 tracking-tight font-sans">Últimos Gastos Reales</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onTabChange) {
+                    onTabChange("tickets");
+                    toast.info("Mostrando detalle completo de tickets de facturación.", "Tickets Guardados");
+                  }
+                }}
+                className="text-xs font-bold text-[#0B53F4] hover:underline cursor-pointer bg-transparent"
+              >
+                Ver todo
+              </button>
+            </div>
+
+            {/* TRANSACTION ITEMS LOGS PANEL */}
+            <div className="space-y-3.5">
+              {invoices.length === 0 ? (
+                <div className="bg-white border border-dashed border-slate-200/80 p-8 rounded-3xl text-center">
+                  <Info className="w-7 h-7 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs text-slate-450 font-bold">No has registrado facturas aún en el SAT para este periodo.</p>
                 </div>
-                <span className="text-sm font-black text-rose-600 font-mono tracking-tight shrink-0">
-                  -${inv.total.toFixed(2)}
-                </span>
+              ) : (
+                invoices.slice(0, 5).map((inv) => {
+                  const emName = inv.nombreEmisor || "Emisor";
+                  const isTransport = emName.toLowerCase().includes("uber") || emName.toLowerCase().includes("didi") || emName.toLowerCase().includes("repsol") || emName.toLowerCase().includes("gas");
+                  const isAli = emName.toLowerCase().includes("starbucks") || emName.toLowerCase().includes("coffee") || emName.toLowerCase().includes("cafe") || emName.toLowerCase().includes("restaurante") || emName.toLowerCase().includes("oxxo");
+                  
+                  return (
+                    <div key={inv.id || inv.folioFiscal} className="bg-white border border-slate-200/55 rounded-3xl p-4.5 flex items-center justify-between shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
+                      <div className="flex items-center gap-3.5 text-left">
+                        <div className="w-10 h-10 bg-[#0B53F4]/10 rounded-full flex items-center justify-center text-[#0B53F4] shrink-0">
+                          {isTransport ? (
+                            <Car className="w-5 h-5 stroke-[2.2]" />
+                          ) : isAli ? (
+                            <Utensils className="w-5 h-5 stroke-[2.2]" />
+                          ) : (
+                            <FileText className="w-5 h-5 stroke-[2.2]" />
+                          )}
+                        </div>
+                        <div className="leading-tight max-w-[240px]">
+                          <span className="text-sm font-black text-slate-800 block truncate font-sans">{emName}</span>
+                          <span className="text-xs text-slate-400 block mt-0.5 font-sans">
+                            {new Date(inv.createdAt).toLocaleString("es-MX", { dateStyle: "short" })} • {isTransport ? "Transporte" : isAli ? "Alimentación" : "Compras"}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-sm font-black text-rose-600 font-mono tracking-tight shrink-0">
+                        -${inv.total.toFixed(2)}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* RIGHT COLUMN - DISTRIBUTION & BREAKDOWN (lg:col-span-5) */}
+        <div className="lg:col-span-5 space-y-6">
+          
+          {/* DISTRIBUCIÓN PROGRESS INDICATORS CARD */}
+          <div className="bg-white border border-slate-200/50 rounded-3xl p-5.5 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
+            <div className="flex items-center justify-between pb-3.5">
+              <h3 className="text-base font-black text-slate-800 tracking-tight font-sans">Distribución por Categorías</h3>
+              <PieChart className="w-4.5 h-4.5 text-slate-400 stroke-[2.3]" />
+            </div>
+
+            {/* Core breakdown progress values bar by bar */}
+            <div className="space-y-4">
+              {/* Alimentación Bar */}
+              <div className="space-y-1.5 text-left">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-extrabold text-slate-800 font-sans">Alimentación</span>
+                  <span className="text-xs text-slate-500 font-medium font-sans">
+                    ${alimentacionSum.toFixed(2)} ({realTotalSpent > 0 ? Math.round((alimentacionSum / realTotalSpent) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="w-full bg-[#EBF1FF]/70 h-1.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-[#0B53F4] h-full rounded-full transition-all duration-300" 
+                    style={{ width: `${realTotalSpent > 0 ? (alimentacionSum / realTotalSpent) * 100 : 0}%` }} 
+                  />
+                </div>
               </div>
-            );
-          })
-        )}
+
+              {/* Compras Bar */}
+              <div className="space-y-1.5 text-left">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-extrabold text-slate-800 font-sans">Compras</span>
+                  <span className="text-xs text-slate-500 font-medium font-sans">
+                    ${comprasSum.toFixed(2)} ({realTotalSpent > 0 ? Math.round((comprasSum / realTotalSpent) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="w-full bg-[#EBF1FF]/70 h-1.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-[#3B82F6] h-full rounded-full transition-all duration-300" 
+                    style={{ width: `${realTotalSpent > 0 ? (comprasSum / realTotalSpent) * 100 : 0}%` }} 
+                  />
+                </div>
+              </div>
+
+              {/* Transporte Bar */}
+              <div className="space-y-1.5 text-left">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-extrabold text-slate-800 font-sans">Transporte</span>
+                  <span className="text-xs text-slate-500 font-medium font-sans">
+                    ${transporteSum.toFixed(2)} ({realTotalSpent > 0 ? Math.round((transporteSum / realTotalSpent) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="w-full bg-[#EBF1FF]/70 h-1.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-[#10B981] h-full rounded-full transition-all duration-300" 
+                    style={{ width: `${realTotalSpent > 0 ? (transporteSum / realTotalSpent) * 100 : 0}%` }} 
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* DESGLOSE POR CATEGORÍA */}
+          <div className="space-y-4">
+            <div className="text-left pt-2">
+              <h2 className="text-lg font-extrabold text-slate-800 tracking-tight font-sans">Desglose por Categoría</h2>
+            </div>
+
+            {/* 2X2 CATEGORIES GRID CAPSULES */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Alimentación Box */}
+              <div className="bg-white border border-slate-200/55 p-5 rounded-3xl shadow-[0_4px_20px_rgba(15,23,42,0.02)] hover:border-slate-300 transition text-left flex flex-col justify-between">
+                <div className="w-10 h-10 bg-[#0B53F4]/10 rounded-full flex items-center justify-center text-[#0B53F4] mb-3.5 self-start">
+                  <Utensils className="w-5.5 h-5.5 stroke-[2.3]" />
+                </div>
+                <div className="leading-tight">
+                  <span className="text-xs text-slate-450 font-bold block font-sans">Alimentación</span>
+                  <span className="text-base font-black text-slate-850 mt-1 block font-sans">
+                    ${alimentacionSum.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Transporte Box */}
+              <div className="bg-white border border-slate-200/55 p-5 rounded-3xl shadow-[0_4px_20px_rgba(15,23,42,0.02)] hover:border-slate-300 transition text-left flex flex-col justify-between">
+                <div className="w-10 h-10 bg-[#10B981]/10 rounded-full flex items-center justify-center text-[#10B981] mb-3.5 self-start">
+                  <Car className="w-5.5 h-5.5 stroke-[2.3]" />
+                </div>
+                <div className="leading-tight">
+                  <span className="text-xs text-slate-450 font-bold block font-sans">Transporte</span>
+                  <span className="text-base font-black text-slate-850 mt-1 block font-sans">
+                    ${transporteSum.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Vivienda Box */}
+              <div className="bg-white border border-slate-200/55 p-5 rounded-3xl shadow-[0_4px_20px_rgba(15,23,42,0.02)] hover:border-slate-300 transition text-left flex flex-col justify-between">
+                <div className="w-10 h-10 bg-[#EF4444]/15 rounded-full flex items-center justify-center text-[#EF4444] mb-3.5 self-start">
+                  <Home className="w-5.5 h-5.5 stroke-[2.3]" />
+                </div>
+                <div className="leading-tight">
+                  <span className="text-xs text-slate-450 font-bold block font-sans">Vivienda</span>
+                  <span className="text-base font-black text-slate-850 mt-1 block font-sans">
+                    ${viviendaSum.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Compras Box */}
+              <div className="bg-white border border-slate-200/55 p-5 rounded-3xl shadow-[0_4px_20px_rgba(15,23,42,0.02)] hover:border-slate-300 transition text-left flex flex-col justify-between">
+                <div className="w-10 h-10 bg-[#3B82F6]/10 rounded-full flex items-center justify-center text-[#3B82F6] mb-3.5 self-start">
+                  <ShoppingBag className="w-5.5 h-5.5 stroke-[2.3]" />
+                </div>
+                <div className="leading-tight">
+                  <span className="text-xs text-slate-450 font-bold block font-sans">Compras</span>
+                  <span className="text-base font-black text-slate-850 mt-1 block font-sans">
+                    ${comprasSum.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
 
       {/* 6. FLOATING ACTION BUTTON (FAB) FOR MOBILE - GO TO CAMERA CAPTURE */}

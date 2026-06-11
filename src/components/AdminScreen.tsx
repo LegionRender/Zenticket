@@ -311,7 +311,7 @@ export default function AdminScreen({
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-6 font-sans text-left mt-2 relative select-none pb-24">
+    <div className="max-w-6xl mx-auto space-y-8 font-sans text-left mt-2 relative select-none pb-24">
 
       {/* REAL-TIME AI PORTAL LEARNING DETAILED HIGH-TECH PROGRESS & STATUS BAR */}
       {isLearningLoading && (

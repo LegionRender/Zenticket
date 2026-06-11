@@ -221,7 +221,7 @@ export default function ProfileForm({
 
   if (isEditingFiscal) {
     return (
-      <div id="fiscal-form-pane" className="max-w-xl mx-auto bg-[#F8F9FE] border border-slate-200/50 shadow-sm rounded-3xl p-5 sm:p-7 animate-fade-in_50 font-sans text-left mt-2 relative select-none">
+      <div id="fiscal-form-pane" className="max-w-3xl mx-auto bg-[#F8F9FE] border border-slate-200/50 shadow-sm rounded-3xl p-5 sm:p-8 animate-fade-in_50 font-sans text-left mt-2 relative select-none">
         
         {/* TOP BAR / NAVIGATION HEADER exactly as pictured */}
         <div className="flex bg-white border-b border-slate-100 px-5 py-4 items-center justify-between sticky top-0 z-30 font-sans -mx-5 -mt-5 sm:-mx-7 sm:-mt-7 rounded-t-3xl mb-6">
@@ -655,7 +655,7 @@ export default function ProfileForm({
 
   if (activeModal !== null) {
     return (
-      <div id="subpage-form-pane" className="max-w-xl mx-auto bg-[#F8F9FE] border border-slate-200/50 shadow-sm rounded-3xl p-5 sm:p-7 animate-fade-in_50 font-sans text-left mt-2 relative select-none">
+      <div id="subpage-form-pane" className="max-w-3xl mx-auto bg-[#F8F9FE] border border-slate-200/50 shadow-sm rounded-3xl p-5 sm:p-8 animate-fade-in_50 font-sans text-left mt-2 relative select-none">
         
         {/* TOP BAR / NAVIGATION HEADER exactly as pictured */}
         <div className="flex bg-white border-b border-slate-100 px-5 py-4 items-center justify-between sticky top-0 z-30 font-sans -mx-5 -mt-5 sm:-mx-7 sm:-mt-7 rounded-t-3xl mb-6">
@@ -1559,9 +1559,13 @@ export default function ProfileForm({
   }
 
   return (
-    <div id="account-tab-dashboard" className="max-w-md mx-auto space-y-6 font-sans text-left animate-fade-in_50 pb-8 select-none">
+    <div id="account-tab-dashboard" className="max-w-6xl mx-auto space-y-8 font-sans text-left animate-fade-in_50 pb-8 select-none">
       
-      {/* 1. Profile card with larger rounded border andJD Avatar */}
+      {/* Grid container layout for widescreen desktop preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* LEFT COLUMN: IDENTITY & SUBSCRIPTION */}
+        <div className="lg:col-span-6 space-y-6">
+          {/* 1. Profile card with larger rounded border andJD Avatar */}
       <div className="bg-white border border-slate-200/50 rounded-3xl p-5 shadow-[0_4px_20px_rgba(15,23,42,0.02)] flex items-center justify-between font-sans">
         <div className="flex items-center gap-4">
           {/* Blue initials circular emblem */}
@@ -1642,8 +1646,13 @@ export default function ProfileForm({
         </div>
       </div>
 
-      {/* 3. MÉTODOS DE PAGO Header & Custom List */}
-      <div className="space-y-2.5">
+      </div> {/* Close Left Column (lg:col-span-6) */}
+
+      {/* RIGHT COLUMN: METHODS & CONFIGURATIONS */}
+      <div className="lg:col-span-6 space-y-6">
+
+        {/* 3. MÉTODOS DE PAGO Header & Custom List */}
+        <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
             Métodos de pago
@@ -2032,6 +2041,9 @@ export default function ProfileForm({
           </div>
         </div>
       </div>
+
+      </div> {/* Close Right Column (lg:col-span-6) */}
+      </div> {/* Close Grid layout container */}
 
       {/* 5. AYUDA Header & Columns */}
       <div className="space-y-2.5">

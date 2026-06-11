@@ -1,236 +1,293 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", "Arial", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --color-brand-purple: #0B53F4;
-  --color-brand-gold: #FFB200;
-  --color-brand-bg: #F8F9FD;
+:root {
+    --zt-bg: #0a0d18;
+    --zt-bg-2: #0d1126;
+    --zt-ink: #0b1020;
+    --zt-blue: #2563ff;
+    --zt-blue-2: #4f7cff;
+    --zt-blue-soft: #6ea0ff;
+    --zt-muted: #b8c0d4;
+    --zt-line: rgba(255, 255, 255, 0.08);
+    --zt-card: rgba(255, 255, 255, 0.04);
+    --zt-card-strong: rgba(255, 255, 255, 0.06);
 }
 
+html,
 body {
-  background-color: #F8F9FD;
-  color: #1E293B;
-  font-family: var(--font-sans);
+    margin: 0;
+    background: #ffffff;
+    color: #0b1020;
+    font-family:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom premium scrollbar for bento grid panels */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.font-display {
+    font-family: "Manrope", "Inter", sans-serif;
+    letter-spacing: -0.02em;
 }
 
-::-webkit-scrollbar-track {
-  background: #F1F5F9;
+.font-body {
+    font-family: "Inter", sans-serif;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 3px;
+/* Selection */
+::selection {
+    background: #2563ff;
+    color: white;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #0B53F4;
+:root {
+    --background: 0 0% 100%;
+    --foreground: 224 38% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 38% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 38% 8%;
+    --primary: 224 100% 57%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 224 38% 8%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 224 38% 8%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 224 100% 57%;
+    --radius: 1rem;
 }
 
-/* Custom animation for blinking terminal cursor */
-@keyframes pulse-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-.blink {
-  animation: pulse-blink 1.5s infinite;
-}
-
-/* Smooth fade-in animation for tab contents */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in_50 {
-  animation: fadeIn 0.25s ease-out forwards;
-}
-
-/* ==========================================================================
-   DINAMIC PREFERENCES: FONT SIZE, BORDER RADIUS, DARK THEME
-   ========================================================================== */
-
-/* 1. Font Size Scaling (Scales all Tailwind rem-based values) */
-html[data-font-size="small"] {
-  font-size: 13px !important;
-}
-html[data-font-size="medium"] {
-  font-size: 15px !important;
-}
-html[data-font-size="large"] {
-  font-size: 17.5px !important;
+@theme {
+    --color-background: hsl(var(--background));
+    --color-foreground: hsl(var(--foreground));
+    --color-card: hsl(var(--card));
+    --color-card-foreground: hsl(var(--card-foreground));
+    --color-popover: hsl(var(--popover));
+    --color-popover-foreground: hsl(var(--popover-foreground));
+    --color-primary: hsl(var(--primary));
+    --color-primary-foreground: hsl(var(--primary-foreground));
+    --color-secondary: hsl(var(--secondary));
+    --color-secondary-foreground: hsl(var(--secondary-foreground));
+    --color-muted: hsl(var(--muted));
+    --color-muted-foreground: hsl(var(--muted-foreground));
+    --color-accent: hsl(var(--accent));
+    --color-accent-foreground: hsl(var(--accent-foreground));
+    --color-destructive: hsl(var(--destructive));
+    --color-destructive-foreground: hsl(var(--destructive-foreground));
+    --color-border: hsl(var(--border));
+    --color-input: hsl(var(--input));
+    --color-ring: hsl(var(--ring));
 }
 
-/* 2. Border Radius Preferences (Wildcard classes to ensure total app consistency) */
-html[data-radius="compact"] [class*="rounded-"] {
-  border-radius: 6px !important;
-}
-html[data-radius="compact"] [class*="rounded-full"],
-html[data-radius="compact"] .rounded-full {
-  border-radius: 9999px !important; /* Keep circular avatars circular */
+* {
+    @apply border-border;
 }
 
-html[data-radius="extra"] [class*="rounded-"] {
-  border-radius: 24px !important;
-}
-html[data-radius="extra"] [class*="rounded-full"],
-html[data-radius="extra"] .rounded-full {
-  border-radius: 9999px !important; /* Keep circular avatars circular */
-}
-html[data-radius="extra"] [class*="rounded-lg"] {
-  border-radius: 14px !important;
-}
-html[data-radius="extra"] [class*="rounded-xl"] {
-  border-radius: 18px !important;
-}
-html[data-radius="extra"] [class*="rounded-2xl"] {
-  border-radius: 22px !important;
-}
-html[data-radius="extra"] [class*="rounded-3xl"] {
-  border-radius: 30px !important;
+/* ZenTicket utility classes */
+.zt-dark {
+    background: radial-gradient(
+            1200px 600px at 80% 10%,
+            rgba(37, 99, 255, 0.18) 0%,
+            transparent 60%
+        ),
+        linear-gradient(180deg, #070a16 0%, #0a0e22 60%, #0a0e22 100%);
 }
 
-/* 3. High-Fidelity Custom Dark Mode Colors Overrides */
-html.dark body,
-html.dark .min-h-screen,
-html.dark main {
-  background-color: #0b0f19 !important;
-  color: #f1f5f9 !important;
+.zt-card-dark {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.04) 0%,
+        rgba(255, 255, 255, 0.02) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
 }
 
-html.dark .bg-white {
-  background-color: #121926 !important;
-  color: #f8fafc !important;
+.zt-chip {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(8px);
 }
 
-/* Override all common light blue/gray background classes */
-html.dark .bg-\[\#F8F9FE\],
-html.dark .bg-\[\#F8F9FD\],
-html.dark .bg-\[\#EDF0F7\],
-html.dark .bg-slate-50,
-html.dark .bg-slate-100,
-html.dark [class*="bg-[#F8F9F"],
-html.dark [class*="bg-[#FAF9F"],
-html.dark [class*="bg-[#EDF0F"] {
-  background-color: #080c14 !important;
-  color: #f1f5f9 !important;
+.zt-grad-text {
+    background: linear-gradient(90deg, #6ea0ff 0%, #4f7cff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
-/* Sidebar and Header Dark styling */
-html.dark aside,
-html.dark header,
-html.dark div[class*="sticky"][class*="top-0"],
-html.dark #BottomNavigationBar {
-  background-color: #111724 !important;
-  border-color: #1e293b !important;
+.zt-btn-primary {
+    background: linear-gradient(180deg, #3b6dff 0%, #2152ee 100%);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.18) inset,
+        0 12px 30px rgba(37, 99, 255, 0.35);
+    transition:
+        transform 200ms ease,
+        box-shadow 200ms ease,
+        filter 200ms ease;
+}
+.zt-btn-primary:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.2) inset,
+        0 18px 40px rgba(37, 99, 255, 0.45);
 }
 
-html.dark header input,
-html.dark div[class*="sticky"][class*="top-0"] input {
-  background-color: #182235 !important;
-  color: #ffffff !important;
+.zt-btn-ghost-dark {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition:
+        background 200ms ease,
+        border-color 200ms ease,
+        transform 200ms ease;
+}
+.zt-btn-ghost-dark:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.22);
 }
 
-html.dark footer {
-  background-color: #06090e !important;
-  border-color: #111724 !important;
-  color: #64748b !important;
+.zt-divider-dot {
+    background-image: radial-gradient(
+        rgba(255, 255, 255, 0.18) 1px,
+        transparent 1px
+    );
+    background-size: 10px 10px;
 }
 
-/* Active segment and icon backgrounds highlighting in dark mode */
-html.dark .bg-\[\#EBF1FF\],
-html.dark .bg-\[\#ebf1ff\],
-html.dark [class*="bg-[#EBF1FF]" i],
-html.dark [class*="bg-[#ebf1ff]" i] {
-  background-color: rgba(59, 130, 246, 0.16) !important;
-  color: #3b82f6 !important;
-  border-color: rgba(59, 130, 246, 0.3) !important;
+/* Light bg patterns */
+.zt-light-grid {
+    background-image:
+        linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
 }
 
-html.dark .text-\[\#0B53F4\],
-html.dark .text-\[\#0b53f4\],
-html.dark [class*="text-[#0B53F4]" i],
-html.dark [class*="text-[#0b53f4]" i],
-html.dark .text-blue-600 {
-  color: #3b82f6 !important;
+.zt-soft-bg {
+    background:
+        radial-gradient(
+            900px 500px at 15% 30%,
+            rgba(37, 99, 255, 0.08),
+            transparent 60%
+        ),
+        radial-gradient(
+            700px 400px at 90% 70%,
+            rgba(37, 99, 255, 0.06),
+            transparent 60%
+        ),
+        linear-gradient(180deg, #f6f8ff 0%, #eef2fb 100%);
 }
 
-/* Text overrides */
-html.dark .text-slate-900,
-html.dark .text-slate-850,
-html.dark .text-slate-800,
-html.dark .text-slate-700,
-html.dark .text-slate-650 {
-  color: #f8fafc !important;
+/* Subtle dotted connector for how-it-works */
+.zt-dotline {
+    background-image: radial-gradient(
+        rgba(15, 23, 42, 0.18) 1.5px,
+        transparent 1.5px
+    );
+    background-size: 12px 2px;
+    background-repeat: repeat-x;
+    background-position: center;
 }
 
-html.dark .text-slate-500,
-html.dark .text-slate-455,
-html.dark .text-slate-450,
-html.dark .text-slate-400 {
-  color: #94a3b8 !important;
+/* Marquee */
+@keyframes ztMarquee {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
+.zt-marquee {
+    animation: ztMarquee 40s linear infinite;
 }
 
-/* Border overrides */
-html.dark .border-slate-100,
-html.dark .border-slate-200,
-html.dark .border-slate-200\/50,
-html.dark .border-slate-200\/80,
-html.dark .border-slate-200\/60,
-html.dark .border-slate-100\/80,
-html.dark [class*="border-slate-"] {
-  border-color: rgba(255, 255, 255, 0.08) !important;
+/* Floating mascot */
+@keyframes ztFloat {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+.zt-float {
+    animation: ztFloat 6s ease-in-out infinite;
 }
 
-/* Also override all Tailwind divide-y list separators in dark mode to be subtle like Starbucks */
-html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
-html.dark .divide-slate-100 > *,
-html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
-html.dark [class*="divide-"] > :not([hidden]) ~ :not([hidden]),
-html.dark [class*="divide-"] > * {
-  border-color: rgba(255, 255, 255, 0.08) !important;
+/* ============================================== */
+/* ZenAura — luxurious ambient background animation */
+/* (used behind the mascot in Assistant & Final CTA) */
+/* ============================================== */
+
+/* Slow wide breathing — outer atmosphere */
+@keyframes ztAuraSlow {
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.85;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.06);
+        opacity: 1;
+    }
 }
 
-html.dark .border-none {
-  border-style: none !important;
+/* Bright pulsing bloom — the heart of the glow */
+@keyframes ztAuraPulse {
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(0.94);
+        opacity: 0.75;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.08);
+        opacity: 1;
+    }
 }
 
-/* Input / Field styling */
-html.dark input,
-html.dark select,
-html.dark textarea {
-  background-color: #121926 !important;
-  border-color: #2e3d59 !important;
-  color: #ffffff !important;
+/* Inner highlight that drifts gently around the centre */
+@keyframes ztAuraDrift {
+    0%,
+    100% {
+        transform: translate(-50%, -50%) translate(0, 0) scale(1);
+        opacity: 0.85;
+    }
+    33% {
+        transform: translate(-50%, -50%) translate(-3%, -2%) scale(1.06);
+        opacity: 1;
+    }
+    66% {
+        transform: translate(-50%, -50%) translate(3%, 2%) scale(0.96);
+        opacity: 0.9;
+    }
 }
 
-html.dark input::placeholder,
-html.dark textarea::placeholder {
-  color: #475569 !important;
+@media (prefers-reduced-motion: reduce) {
+    .zt-float {
+        animation: none !important;
+    }
 }
 
-/* Hover & Active item status */
-html.dark .hover\:bg-slate-50:hover,
-html.dark .hover\:bg-slate-100:hover,
-html.dark .hover\:bg-slate-55:hover,
-html.dark [class*="hover:bg-slate-50"]:hover,
-html.dark [class*="hover:bg-slate-100"]:hover,
-html.dark [class*="hover:bg-slate-55"]:hover {
-  background-color: #1a2336 !important;
+
+/* Glow ring */
+.zt-glow {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 30px 80px -20px rgba(37, 99, 255, 0.45);
 }
 
-/* Active sub-card highlights */
-html.dark .shadow-xs,
-html.dark .shadow-sm {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+/* No scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
 }
-
-html.dark .border-slate-200\/30 {
-  border-color: #1c273a !important;
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }

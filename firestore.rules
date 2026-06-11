@@ -16,41 +16,42 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == "legionrender@gmail.com";
+    }
+
     // Fiscal Profiles rules
     // Path: fiscalProfiles/{userId}
     match /fiscalProfiles/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) || isAdmin();
     }
 
     // Tickets rules
     // Path: tickets/{ticketId}
     match /tickets/{ticketId} {
-      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update: if (isSignedIn() && (resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid)) || isAdmin();
+      allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
     }
 
     // Connectors rules
     // Path: connectors/{connectorId}
     match /connectors/{connectorId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() 
-        && (request.resource.data.userId == request.auth.uid || request.resource.data.userId == "system");
-      allow update: if isSignedIn() 
-        && (resource.data.userId == request.auth.uid || resource.data.userId == "system")
-        && (request.resource.data.userId == request.auth.uid || request.resource.data.userId == "system");
-      allow delete: if isSignedIn() 
-        && (resource.data.userId == request.auth.uid);
+      allow create, update: if (isSignedIn() 
+        && (request.resource.data.userId == request.auth.uid || request.resource.data.userId == "system")) || isAdmin();
+      allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
     }
 
     // Invoices rules
     // Path: invoices/{invoiceId}
     match /invoices/{invoiceId} {
-      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update: if (isSignedIn() && (resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid)) || isAdmin();
+      allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
     }
   }
 }
