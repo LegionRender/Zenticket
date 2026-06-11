@@ -296,10 +296,10 @@ export default function TicketsListScreen({
     const brandStyle = getBrandBrandIcon(emisorNameRaw);
 
     return (
-      <div className="max-w-xl mx-auto space-y-6 font-sans text-left mt-2 relative select-none pb-24 animate-fade-in_50">
+      <div className="max-w-6xl mx-auto space-y-8 font-sans text-left mt-2 relative select-none pb-24 animate-fade-in_50">
         
         {/* Nav header matching Screen 3 */}
-        <div className="flex items-center justify-between pb-2">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -312,7 +312,7 @@ export default function TicketsListScreen({
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">Ver PDF</h1>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">Ver PDF - Detalle de Factura</h1>
           </div>
 
           <button
@@ -332,8 +332,13 @@ export default function TicketsListScreen({
           </button>
         </div>
 
-        {/* ELEGANT WHITE PAPER CONTAINER */}
-        <div className="bg-white border border-slate-200/90 rounded-[28px] p-6 shadow-[0_4px_24px_rgba(15,23,42,0.04)] relative">
+        {/* Widescreen 2-column Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* LEFT COLUMN: THE WHITE PAPER INVOICE PREVIEW (lg:col-span-7) */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* ELEGANT WHITE PAPER CONTAINER */}
+            <div className="bg-white border border-slate-200/90 rounded-[28px] p-6 shadow-[0_4px_24px_rgba(15,23,42,0.04)] relative">
           
           {/* Top band row */}
           <div className="flex items-start justify-between">
@@ -476,6 +481,11 @@ export default function TicketsListScreen({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent" />
         </div>
+
+      </div> {/* Close Left Column (lg:col-span-7) */}
+
+      {/* RIGHT COLUMN: ACTIONS, CODE PREVIEWS & ACCORDIONS (lg:col-span-5) */}
+      <div className="lg:col-span-5 space-y-6">
 
         {/* PRIMARY ACTIVE BIG ACTIONS */}
         <div className="space-y-3.5">
@@ -1470,6 +1480,9 @@ export default function TicketsListScreen({
           </div>
         </div>
 
+      </div> {/* Close Right Column (lg:col-span-5) */}
+      </div> {/* Close Grid layout container */}
+
       </div>
     );
   }
@@ -1481,7 +1494,7 @@ export default function TicketsListScreen({
   // STANDARD INTERACTIVE MAIN SCREEN LIST VIEW
   // ----------------------------------------------------
   return (
-    <div className="max-w-xl mx-auto space-y-6 font-sans text-left mt-2 relative select-none pb-24 animate-fade-in_50">
+    <div className="max-w-6xl mx-auto space-y-6 font-sans text-left mt-2 relative select-none pb-24 animate-fade-in_50">
       
       {/* Top title header matching Screenshots 1 & 2 */}
       <div className="flex items-center gap-4 py-2 border-b border-transparent relative">
@@ -1502,8 +1515,8 @@ export default function TicketsListScreen({
         <h1 className="text-xl font-black text-slate-900 tracking-tight">Mis Tickets</h1>
       </div>
 
-      {/* SEGMENTED CONTROL TAB BAR FILTERS MATCHING IMAGE */}
-      <div className="bg-[#F1F3FE] p-1.5 rounded-2xl border border-slate-100/70 shadow-inner flex w-full relative">
+      {/* SEGMENTED CONTROL TAB BAR FILTERS MATCHING IMAGE - Hidden on desktop screens */}
+      <div className="bg-[#F1F3FE] p-1.5 rounded-2xl border border-slate-100/70 shadow-inner flex w-full relative lg:hidden">
         <button
           type="button"
           onClick={() => setActiveSubTab("en-seguimiento")}
@@ -1529,264 +1542,274 @@ export default function TicketsListScreen({
         </button>
       </div>
 
-      {/* SUB-SECTION HEADER DEPENDING ON TAB */}
-      {activeSubTab === "en-seguimiento" ? (
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-base font-black text-slate-805 tracking-tight font-sans">
-            En seguimiento
-          </h2>
-          <span className="bg-[#E8EEFF] text-[#0B53F4] text-[10.5px] font-black px-3 py-1 rounded-full uppercase leading-none tracking-wider">
-            {activeCount} ACTIVO{activeCount !== 1 ? "S" : ""}
-          </span>
-        </div>
-      ) : (
-        <div className="px-1 text-left">
-          <h2 className="text-base font-black text-slate-805 tracking-tight font-sans">
-            Facturas Emitidas
-          </h2>
-        </div>
-      )}
+      {/* Grid container layout for widescreen desktop preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* COLUMN 1: EN SEGUIMIENTO (Visible on desktop OR when mobile has activeSubTab === "en-seguimiento") */}
+        <div className={`space-y-4 lg:col-span-6 ${activeSubTab === "en-seguimiento" ? "block" : "hidden lg:block"}`}>
+          <div className="flex items-center justify-between px-1 mb-2">
+            <h2 className="text-base font-black text-slate-805 tracking-tight font-sans">
+              En seguimiento
+            </h2>
+            <span className="bg-[#E8EEFF] text-[#0B53F4] text-[10.5px] font-black px-3 py-1 rounded-full uppercase leading-none tracking-wider">
+              {activeCount} ACTIVO{activeCount !== 1 ? "S" : ""}
+            </span>
+          </div>
 
-      {/* DETAILED SCREEN 1 CONTENT: EN SEGUIMIENTO LIST */}
-      {activeSubTab === "en-seguimiento" && (
-        <div className="space-y-4">
-          {inProgressList.length === 0 ? (
-            <div className="bg-white border border-dashed border-slate-200/80 p-9 rounded-3xl text-center">
-              <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2 animate-pulse" />
-              <p className="text-xs font-black text-slate-800">No hay tickets activos en este momento</p>
-              <p className="text-[10px] text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">Puedes arrastrar otro ticket en la sección Captura para procesarlo.</p>
-            </div>
-          ) : (
-            inProgressList.map((t) => {
-              const isFailed = t.status === "failed";
-              const isProcessing = t.status === "processing";
-              const brand = getBrandBrandIcon(t.nombreEmisor || "");
+          <div className="space-y-4">
+            {inProgressList.length === 0 ? (
+              <div className="bg-white border border-dashed border-slate-200/80 p-9 rounded-3xl text-center">
+                <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2 animate-pulse" />
+                <p className="text-xs font-black text-slate-800">No hay tickets activos en este momento</p>
+                <p className="text-[10px] text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">Puedes arrastrar otro ticket en la sección Captura para procesarlo.</p>
+              </div>
+            ) : (
+              inProgressList.map((t) => {
+                const isFailed = t.status === "failed";
+                const isProcessing = t.status === "processing";
+                const brand = getBrandBrandIcon(t.nombreEmisor || "");
 
-              return (
-                <div 
-                  key={t.id}
-                  className="bg-white border border-slate-200/50 rounded-3xl p-5 shadow-[0_4px_20px_rgba(15,23,42,0.02)] flex flex-col gap-4 relative overflow-hidden transition hover:border-[#0B53F4]/20 hover:shadow-[0_4px_24px_rgba(11,83,244,0.04)]"
-                >
-                  {/* Robot processing loader during active agent automation */}
-                  {isProcessing && t.id?.startsWith("user-") && (
-                    <div className="absolute inset-0 bg-white/95 flex flex-col justify-center items-center z-15 p-2 text-center space-y-1">
-                      <RefreshCw className="w-5 h-5 text-[#0B53F4] animate-spin" />
-                      <span className="font-extrabold text-[10px] text-[#0B53F4] uppercase tracking-wider">Playwright SAT Activo</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className={`w-10 h-10 ${brand.color} rounded-full flex items-center justify-center shrink-0`}>
-                        <brand.IconComponent className="w-5 h-5 stroke-[2.2]" />
+                return (
+                  <div 
+                    key={t.id}
+                    className="bg-white border border-slate-200/50 rounded-3xl p-5 shadow-[0_4px_20px_rgba(15,23,42,0.02)] flex flex-col gap-4 relative overflow-hidden transition hover:border-[#0B53F4]/20 hover:shadow-[0_4px_24px_rgba(11,83,244,0.04)]"
+                  >
+                    {/* Robot processing loader during active agent automation */}
+                    {isProcessing && t.id?.startsWith("user-") && (
+                      <div className="absolute inset-0 bg-white/95 flex flex-col justify-center items-center z-15 p-2 text-center space-y-1">
+                        <RefreshCw className="w-5 h-5 text-[#0B53F4] animate-spin" />
+                        <span className="font-extrabold text-[10px] text-[#0B53F4] uppercase tracking-wider">Playwright SAT Activo</span>
                       </div>
-                      
-                      <div className="text-left leading-tight min-w-0">
-                        <span className="text-sm font-black text-slate-800 block truncate max-w-[170px] uppercase">
-                          {t.nombreEmisor || "Emisor"}
-                        </span>
-                        <span className="text-[11px] text-slate-400 block mt-1 font-semibold">
-                          Ticket #{t.folio || "S/D"} • {t.fechaCompra || "S/F"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Highly polished active status state indicator badge */}
-                    {t.status === "review" ? (
-                      <span className="bg-amber-100 text-amber-700 text-[9.5px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 leading-none">
-                        REVISIÓN ADMIN
-                      </span>
-                    ) : isFailed ? (
-                      <span className="bg-rose-100 text-rose-700 text-[9.5px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 leading-none">
-                        FALLIDO
-                      </span>
-                    ) : (
-                      <span className="bg-[#FEF3C7] text-[#D97706] text-[9.5px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 leading-none">
-                        PROCESANDO
-                      </span>
                     )}
-                  </div>
 
-                  {/* Escalation/Failure Reason Card Block */}
-                  {(t.status === "review" || isFailed) && t.errorMsg && (
-                    <div className={`text-[11px] p-3 rounded-2xl leading-relaxed font-sans ${
-                      t.status === "review" ? "bg-amber-500/10 text-amber-900 border border-amber-200/45" : "bg-rose-50 text-rose-800 border border-rose-100/60"
-                    }`}>
-                      <span className="font-bold block uppercase text-[9px] mb-1 tracking-wider">
-                        {t.status === "review" ? "Límite de Presupuesto Excedido:" : "Error de Automatización:"}
-                      </span>
-                      {t.errorMsg}
-                      {t.status === "review" && (
-                        <p className="text-[10px] text-amber-600 font-semibold mt-1 leading-normal">
-                          El conector requiere aprendizaje, pero supera el tope configurado de costo. El Administrador ya recibió la solicitud en su bandeja de alertas.
-                        </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className={`w-10 h-10 ${brand.color} rounded-full flex items-center justify-center shrink-0`}>
+                          <brand.IconComponent className="w-5 h-5 stroke-[2.2]" />
+                        </div>
+                        
+                        <div className="text-left leading-tight min-w-0">
+                          <span className="text-sm font-black text-slate-800 block truncate max-w-[170px] uppercase">
+                            {t.nombreEmisor || "Emisor"}
+                          </span>
+                          <span className="text-[11px] text-slate-400 block mt-1 font-semibold">
+                            Ticket #{t.folio || "S/D"} • {t.fechaCompra || "S/F"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Highly polished active status state indicator badge */}
+                      {t.status === "review" ? (
+                        <span className="bg-amber-100 text-amber-700 text-[9.5px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 leading-none">
+                          REVISIÓN ADMIN
+                        </span>
+                      ) : isFailed ? (
+                        <span className="bg-rose-100 text-rose-700 text-[9.5px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 leading-none">
+                          FALLIDO
+                        </span>
+                      ) : (
+                        <span className="bg-[#FEF3C7] text-[#D97706] text-[9.5px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 leading-none">
+                          PROCESANDO
+                        </span>
                       )}
                     </div>
-                  )}
 
-                  {/* Divider line Inside Card */}
-                  <div className="border-t border-slate-100 my-0.5" />
+                    {/* Escalation/Failure Reason Card Block */}
+                    {(t.status === "review" || isFailed) && t.errorMsg && (
+                      <div className={`text-[11px] p-3 rounded-2xl leading-relaxed font-sans ${
+                        t.status === "review" ? "bg-amber-500/10 text-amber-900 border border-amber-200/45" : "bg-rose-50 text-rose-800 border border-rose-100/60"
+                      }`}>
+                        <span className="font-bold block uppercase text-[9px] mb-1 tracking-wider">
+                          {t.status === "review" ? "Límite de Presupuesto Excedido:" : "Error de Automatización:"}
+                        </span>
+                        {t.errorMsg}
+                        {t.status === "review" && (
+                          <p className="text-[10px] text-amber-600 font-semibold mt-1 leading-normal">
+                            El conector requiere aprendizaje, pero supera el tope configurado de costo. El Administrador ya recibió la solicitud en su bandeja de alertas.
+                          </p>
+                        )}
+                      </div>
+                    )}
 
-                  {/* Lower cash amount indicator + interactive detail link */}
-                  <div className="flex justify-between items-center select-none pt-0.5">
-                    <span className="text-lg font-black text-slate-800 font-mono">
-                      ${(t.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
+                    {/* Divider line Inside Card */}
+                    <div className="border-t border-slate-100 my-0.5" />
 
-                    <div className="flex items-center gap-2">
-                      {/* Trash Delete Option for Users */}
-                      {onDeleteTicket && (
-                        ticketIdToDelete === t.id ? (
-                          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-lg text-[9px] font-bold">
-                            <span className="text-slate-550 mr-1">¿Cargar?</span>
+                    {/* Lower cash amount indicator + interactive detail link */}
+                    <div className="flex justify-between items-center select-none pt-0.5">
+                      <span className="text-lg font-black text-slate-800 font-mono">
+                        ${(t.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+
+                      <div className="flex items-center gap-2">
+                        {/* Trash Delete Option for Users */}
+                        {onDeleteTicket && (
+                          ticketIdToDelete === t.id ? (
+                            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-lg text-[9px] font-bold">
+                              <span className="text-slate-550 mr-1">¿Cargar?</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onDeleteTicket(t.id || "");
+                                  setTicketIdToDelete(null);
+                                }}
+                                className="px-1.5 py-0.5 bg-rose-600 text-white rounded font-bold cursor-pointer"
+                              >
+                                Sí
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setTicketIdToDelete(null)}
+                                className="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded font-bold cursor-pointer"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
                             <button
                               type="button"
-                              onClick={() => {
-                                onDeleteTicket(t.id || "");
-                                setTicketIdToDelete(null);
-                              }}
-                              className="px-1.5 py-0.5 bg-rose-600 text-white rounded font-bold cursor-pointer"
+                              onClick={() => setTicketIdToDelete(t.id || "")}
+                              className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg bg-transparent cursor-pointer hover:bg-slate-50 transition"
+                              title="Eliminar"
                             >
-                              Sí
+                              <Trash2 className="w-4 h-4" />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => setTicketIdToDelete(null)}
-                              className="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded font-bold cursor-pointer"
-                            >
-                              No
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setTicketIdToDelete(t.id || "")}
-                            className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg bg-transparent cursor-pointer hover:bg-slate-50 transition"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )
-                      )}
+                          )
+                        )}
 
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onTriggerSimulationInline(t);
+                            toast.success(`Iniciando conexión con el SAT para facturar ticket #${t.folio || "88219"}.`, "Sincronizador SAT");
+                          }}
+                          className="text-xs font-black text-[#0B53F4] hover:underline bg-transparent flex items-center gap-1 cursor-pointer transition shrink-0"
+                        >
+                          Ver detalles
+                          <ExternalLink className="w-3.5 h-3.5 stroke-[2.3]" />
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* COLUMN 2: FACTURAS EMITIDAS (Visible on desktop OR when mobile has activeSubTab === "facturas-emitidas") */}
+        <div className={`space-y-4 lg:col-span-6 ${activeSubTab === "facturas-emitidas" ? "block" : "hidden lg:block"}`}>
+          <div className="px-1 text-left mb-2">
+            <h2 className="text-base font-black text-slate-805 tracking-tight font-sans">
+              Facturas Emitidas
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+            {emittedInvoicesList.length === 0 ? (
+              <div className="bg-white border border-dashed border-slate-200/80 p-9 rounded-3xl text-center">
+                <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs font-black text-slate-800">No hay facturas emitidas</p>
+                <p className="text-[10px] text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">Las facturas emitidas y certificadas por el SAT se guardarán aquí.</p>
+              </div>
+            ) : (
+              emittedInvoicesList.map((inv) => {
+                const brand = getBrandBrandIcon(inv.nombreEmisor || "");
+                const isMock = inv.id?.startsWith("mock-");
+                
+                // Format dynamic Dates inside details
+                let dateStr = "15/10/2023";
+                if (!isMock && inv.createdAt) {
+                  try {
+                    dateStr = new Date(inv.createdAt).toLocaleDateString("es-MX");
+                  } catch {
+                    dateStr = inv.createdAt;
+                  }
+                } else if (inv.createdAt) {
+                  dateStr = inv.createdAt;
+                }
+
+                return (
+                  <div 
+                    key={inv.id}
+                    className="bg-white border border-slate-200/55 rounded-3xl p-5 shadow-[0_4px_20px_rgba(15,23,42,0.02)] flex flex-col gap-3.5 justify-between transition hover:border-[#0B53F4]/20 hover:shadow-[0_4px_24px_rgba(11,83,244,0.04)]"
+                  >
+                    {/* Horizontal main body */}
+                    <div className="flex items-start justify-between gap-3">
+                      
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className={`w-10 h-10 ${brand.color} rounded-full flex items-center justify-center shrink-0`}>
+                          <brand.IconComponent className="w-5 h-5 stroke-[2.2]" />
+                        </div>
+
+                        <div className="text-left min-w-0">
+                          <span className="text-sm font-black text-slate-800 block truncate uppercase tracking-tight" title={inv.nombreEmisor}>
+                            {inv.nombreEmisor}
+                          </span>
+                          <span className="text-[13px] font-black font-mono text-[#0B53F4] tracking-tight block mt-1">
+                            ${inv.total.toLocaleString("es-MX", { minimumFractionDigits: 2 })} MXN
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Compact right actions stacked block (Hidden on mobile to avoid squeezing) */}
+                      <div className="hidden sm:flex flex-col gap-1.5 min-w-[124px] shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedInvoiceId(inv.id || null)}
+                          className="w-full border border-slate-200 hover:border-[#0B53F4]/20 hover:bg-[#F1F3FE]/50 rounded-xl py-1.5 px-3 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition text-slate-700 shadow-2xs cursor-pointer"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-slate-500 stroke-[2.2]" />
+                          Ver PDF
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => downloadFile(inv.xmlContent, `Factura_${inv.nombreEmisor}_${inv.folioFiscal?.substring(0,8)}.xml`, "text/xml")}
+                          className="w-full border border-slate-200 hover:border-[#0B53F4]/20 hover:bg-[#F1F3FE]/50 rounded-xl py-1.5 px-3 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition text-slate-700 shadow-2xs cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5 text-slate-500 stroke-[2.2]" />
+                          Descargar XML
+                        </button>
+                      </div>
+
+                    </div>
+
+                    {/* Lower metadata footer details */}
+                    <div className="border-t border-slate-100 pt-3 flex justify-between items-center text-[10px] text-slate-400 font-bold select-none">
+                      <span>Emisión: {dateStr}</span>
+                      <span className="font-mono">RFC: {inv.rfcEmisor || "S/D"}</span>
+                    </div>
+
+                    {/* Mobile action buttons (Exclusively shown on mobile as a row underneath to guarantee full width and no truncation) */}
+                    <div className="flex sm:hidden gap-2 mt-0.5">
                       <button
                         type="button"
-                        onClick={() => {
-                          onTriggerSimulationInline(t);
-                          toast.success(`Iniciando conexión con el SAT para facturar ticket #${t.folio || "88219"}.`, "Sincronizador SAT");
-                        }}
-                        className="text-xs font-black text-[#0B53F4] hover:underline bg-transparent flex items-center gap-1 cursor-pointer transition shrink-0"
+                        onClick={() => setSelectedInvoiceId(inv.id || null)}
+                        className="flex-1 border border-slate-200 hover:border-[#0B53F4]/25 hover:bg-[#0B53F4]/5 rounded-xl py-2.5 px-3.5 text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition text-slate-700 shadow-2xs cursor-pointer min-h-[42px]"
                       >
-                        Ver detalles
-                        <ExternalLink className="w-3.5 h-3.5 stroke-[2.3]" />
+                        <FileText className="w-4 h-4 text-slate-500 stroke-[2.2]" />
+                        Ver PDF
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => downloadFile(inv.xmlContent, `Factura_${inv.nombreEmisor}_${inv.folioFiscal?.substring(0,8)}.xml`, "text/xml")}
+                        className="flex-1 border border-slate-200 hover:border-[#0B53F4]/25 hover:bg-[#0B53F4]/5 rounded-xl py-2.5 px-3.5 text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition text-slate-700 shadow-2xs cursor-pointer min-h-[42px]"
+                      >
+                        <Download className="w-4 h-4 text-slate-500 stroke-[2.2]" />
+                        Descargar XML
                       </button>
                     </div>
-                  </div>
 
-                </div>
-              );
-            })
-          )}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
-      )}
 
-      {/* DETAILED SCREEN 2 CONTENT: FACTURAS EMITIDAS LIST */}
-      {activeSubTab === "facturas-emitidas" && (
-        <div className="space-y-4">
-          {emittedInvoicesList.map((inv) => {
-            const brand = getBrandBrandIcon(inv.nombreEmisor || "");
-            const isMock = inv.id?.startsWith("mock-");
-            
-            // Format dynamic Dates inside details
-            let dateStr = "15/10/2023";
-            if (!isMock && inv.createdAt) {
-              try {
-                dateStr = new Date(inv.createdAt).toLocaleDateString("es-MX");
-              } catch {
-                dateStr = inv.createdAt;
-              }
-            } else if (inv.createdAt) {
-              dateStr = inv.createdAt;
-            }
-
-            return (
-              <div 
-                key={inv.id}
-                className="bg-white border border-slate-200/55 rounded-3xl p-5 shadow-[0_4px_20px_rgba(15,23,42,0.02)] flex flex-col gap-3.5 justify-between transition hover:border-[#0B53F4]/20 hover:shadow-[0_4px_24px_rgba(11,83,244,0.04)]"
-              >
-                {/* Horizontal main body */}
-                <div className="flex items-start justify-between gap-3">
-                  
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className={`w-10 h-10 ${brand.color} rounded-full flex items-center justify-center shrink-0`}>
-                      <brand.IconComponent className="w-5 h-5 stroke-[2.2]" />
-                    </div>
-
-                    <div className="text-left min-w-0">
-                      <span className="text-sm font-black text-slate-800 block truncate uppercase tracking-tight" title={inv.nombreEmisor}>
-                        {inv.nombreEmisor}
-                      </span>
-                      <span className="text-[13px] font-black font-mono text-[#0B53F4] tracking-tight block mt-1">
-                        ${inv.total.toLocaleString("es-MX", { minimumFractionDigits: 2 })} MXN
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Compact right actions stacked block (Hidden on mobile to avoid squeezing) */}
-                  <div className="hidden sm:flex flex-col gap-1.5 min-w-[124px] shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedInvoiceId(inv.id || null)}
-                      className="w-full border border-slate-200 hover:border-[#0B53F4]/20 hover:bg-[#F1F3FE]/50 rounded-xl py-1.5 px-3 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition text-slate-700 shadow-2xs cursor-pointer"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-slate-500 stroke-[2.2]" />
-                      Ver PDF
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={() => downloadFile(inv.xmlContent, `Factura_${inv.nombreEmisor}_${inv.folioFiscal?.substring(0,8)}.xml`, "text/xml")}
-                      className="w-full border border-slate-200 hover:border-[#0B53F4]/20 hover:bg-[#F1F3FE]/50 rounded-xl py-1.5 px-3 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition text-slate-700 shadow-2xs cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5 text-slate-500 stroke-[2.2]" />
-                      Descargar XML
-                    </button>
-                  </div>
-
-                </div>
-
-                {/* Lower metadata footer details */}
-                <div className="border-t border-slate-100 pt-3 flex justify-between items-center text-[10px] text-slate-400 font-bold select-none">
-                  <span>Emisión: {dateStr}</span>
-                  <span className="font-mono">RFC: {inv.rfcEmisor || "S/D"}</span>
-                </div>
-
-                {/* Mobile action buttons (Exclusively shown on mobile as a row underneath to guarantee full width and no truncation) */}
-                <div className="flex sm:hidden gap-2 mt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedInvoiceId(inv.id || null)}
-                    className="flex-1 border border-slate-200 hover:border-[#0B53F4]/25 hover:bg-[#0B53F4]/5 rounded-xl py-2.5 px-3.5 text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition text-slate-700 shadow-2xs cursor-pointer min-h-[42px]"
-                  >
-                    <FileText className="w-4 h-4 text-slate-500 stroke-[2.2]" />
-                    Ver PDF
-                  </button>
-                  
-                  <button
-                    type="button"
-                    onClick={() => downloadFile(inv.xmlContent, `Factura_${inv.nombreEmisor}_${inv.folioFiscal?.substring(0,8)}.xml`, "text/xml")}
-                    className="flex-1 border border-slate-200 hover:border-[#0B53F4]/25 hover:bg-[#0B53F4]/5 rounded-xl py-2.5 px-3.5 text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition text-slate-700 shadow-2xs cursor-pointer min-h-[42px]"
-                  >
-                    <Download className="w-4 h-4 text-slate-500 stroke-[2.2]" />
-                    Descargar XML
-                  </button>
-                </div>
-
-              </div>
-            );
-          })}
-        </div>
-      )}
+      </div> {/* Close Grid layout container */}
 
       {/* FLOATING ACTION CAPTURE ACCESS AT BOTTOM RIGHT TO MAKE ACTION EASY */}
       {onTabChange && (

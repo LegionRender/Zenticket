@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "@/firebase";
+import Logo from "@/components/Logo";
 
 export const AuthModal = ({ open, onOpenChange, initialMode = "signin" }) => {
   const [mode, setMode] = useState(initialMode); // "signin" or "signup"
@@ -99,6 +100,9 @@ export const AuthModal = ({ open, onOpenChange, initialMode = "signin" }) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[420px] bg-[#070a16] text-white border-white/10 p-6 rounded-2xl">
         <DialogHeader className="items-center text-center">
+          <div className="flex justify-center mb-5 mt-1 select-none">
+            <Logo size="md" variant="horizontal" theme="dark" />
+          </div>
           <DialogTitle className="font-display text-[24px] font-extrabold tracking-tight">
             {mode === "signup" ? "Crea tu cuenta gratis" : "Iniciar Sesión"}
           </DialogTitle>

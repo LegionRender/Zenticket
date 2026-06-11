@@ -12,6 +12,19 @@ const chips = [
 ];
 
 const AssistantSection = () => {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const media = window.matchMedia("(max-w: 1023px)");
+    setIsMobile(media.matches);
+    const listener = (e) => setIsMobile(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, []);
+
+  const mascotSize = isMobile ? 433 : 578;
+  const videoSize = isMobile ? 525 : 700;
+
   return (
     <section
       data-testid={TID.assistant.root}
@@ -20,10 +33,10 @@ const AssistantSection = () => {
       <div className="absolute inset-0 zt-soft-bg opacity-90" />
       <div className="absolute inset-0 zt-light-grid opacity-40" />
 
-      <div className="relative max-w-[1240px] mx-auto px-6 lg:px-8 py-20 lg:py-28">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="relative max-w-[1240px] mx-auto px-6 lg:px-8 py-6 sm:py-12 lg:py-28">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Mascot with animated video aura */}
-          <div className="relative flex justify-center items-center min-h-[620px] lg:min-h-[680px]">
+          <div className="relative flex justify-center items-center min-h-[380px] lg:min-h-[680px]">
             {/* Fallback aura — shows through when the video can't decode */}
             <div className="absolute inset-0 -mx-6 lg:-mx-12">
               <ZenAura theme="light" intensity={1} />
@@ -31,8 +44,8 @@ const AssistantSection = () => {
             <div
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full overflow-hidden pointer-events-none"
               style={{
-                width: 700,
-                height: 700,
+                width: videoSize,
+                height: videoSize,
                 maxWidth: "100%",
                 WebkitMaskImage:
                   "radial-gradient(circle, #000 18%, rgba(0,0,0,0.55) 38%, rgba(0,0,0,0.18) 55%, transparent 70%)",
@@ -52,7 +65,7 @@ const AssistantSection = () => {
               />
             </div>
             <ZenMascot
-              size={578}
+              size={mascotSize}
               className="relative z-10"
               style={{ filter: "drop-shadow(0 30px 60px rgba(37,99,255,0.35))" }}
             />

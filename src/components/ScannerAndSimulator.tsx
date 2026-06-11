@@ -536,8 +536,8 @@ export default function ScannerAndSimulator({
 
       {/* 2. ZenTicket Brand Header with Logo Box and Notification Bell */}
       {activeStep === "upload" && (
-        <div className="flex items-center justify-between relative z-10 bg-white border border-slate-200/60 p-4.5 rounded-2xl shadow-sm">
-          <Logo size="md" />
+        <div className="flex items-center justify-between relative z-10 bg-white border border-slate-200/60 py-2.5 px-4.5 rounded-2xl shadow-sm">
+          <Logo size="sm" />
 
           {/* Golden active bell icon */}
           <div className="relative p-2 rounded-full border border-slate-200 bg-slate-50 cursor-pointer text-slate-550 hover:text-slate-800 transition shadow-sm">
