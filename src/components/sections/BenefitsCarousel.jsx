@@ -51,36 +51,38 @@ const BenefitsCarousel = () => {
           "linear-gradient(180deg, #060914 0%, #080c1c 50%, #060914 100%)",
       }}
     >
-      <div className="max-w-[1240px] mx-auto px-6 lg:px-8 py-14 lg:py-16">
+      <div className="max-w-[1240px] mx-auto px-6 lg:px-8 py-5 sm:py-8 lg:py-16">
         <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {benefits.map((b) => (
             <div
               key={b.title}
-              className={`zt-card-dark rounded-2xl p-5 transition-all hover:-translate-y-0.5 ${
+              className={`zt-card-dark rounded-2xl p-5 transition-all hover:-translate-y-0.5 flex gap-4 items-start ${
                 b.highlight ? "ring-1 ring-amber-300/20" : ""
               }`}
             >
               <div
-                className={`w-10 h-10 rounded-xl grid place-items-center ${b.iconBg} ring-1 ${accentRing[b.accent]}`}
+                className={`w-10 h-10 shrink-0 rounded-xl grid place-items-center ${b.iconBg} ring-1 ${accentRing[b.accent]}`}
               >
                 <b.icon size={18} />
               </div>
-              <h3
-                className={`font-display font-semibold mt-4 text-[16px] ${
-                  b.highlight ? "text-amber-300" : "text-white"
-                }`}
-              >
-                {b.title}
-              </h3>
-              <p className="text-[13px] text-white/60 leading-6 mt-2">
-                {b.desc}
-              </p>
+              <div className="flex-1">
+                <h3
+                  className={`font-display font-semibold text-[16px] leading-snug ${
+                    b.highlight ? "text-amber-300" : "text-white"
+                  }`}
+                >
+                  {b.title}
+                </h3>
+                <p className="text-[13px] text-white/60 leading-normal mt-1.5">
+                  {b.desc}
+                </p>
+              </div>
             </div>
           ))}
         </div>
 
         {/* Mock carousel arrows */}
-        <div className="flex justify-center gap-2 mt-6 lg:hidden">
+        <div className="hidden sm:flex justify-center gap-2 mt-6">
           <button className="zt-btn-ghost-dark w-9 h-9 rounded-full grid place-items-center">
             <ChevronLeft size={16} />
           </button>

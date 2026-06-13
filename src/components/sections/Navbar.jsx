@@ -74,37 +74,37 @@ const Navbar = ({ onCtaClick, onLoginClick }) => {
         </nav>
 
         {open && (
-          <div className="lg:hidden mt-4 zt-card-dark rounded-2xl p-5">
-            <ul className="flex flex-col gap-4 text-white/80">
+          <div className="lg:hidden mt-4 bg-slate-950 border border-white/15 rounded-2xl p-6 shadow-2xl relative z-50">
+            <ul className="flex flex-col gap-5 text-white">
               {navItems.map((it) => (
                 <li key={it.id}>
                   <a
                     href={it.href}
                     onClick={() => setOpen(false)}
-                    className="block text-[15px]"
+                    className="block text-[16px] py-1 font-medium hover:text-blue-400 transition-colors"
                   >
                     {it.label}
                   </a>
                 </li>
               ))}
-              <li>
+              <li className="pt-2 border-t border-white/10">
                 <button
                   onClick={() => {
                     setOpen(false);
                     onLoginClick?.();
                   }}
-                  className="block text-[15px] text-left w-full text-white/80 hover:text-white transition-colors cursor-pointer bg-transparent border-0"
+                  className="block text-[16px] text-left w-full py-1.5 text-white/90 hover:text-white transition-colors cursor-pointer bg-transparent border-0 font-medium"
                 >
                   Iniciar sesión
                 </button>
               </li>
-              <li>
+              <li className="pt-2">
                 <button
                   onClick={() => {
                     setOpen(false);
                     onCtaClick?.();
                   }}
-                  className="zt-btn-primary text-white text-[14px] font-semibold px-5 py-2.5 rounded-full w-full"
+                  className="zt-btn-primary text-white text-[15px] font-semibold px-5 py-3 rounded-full w-full"
                 >
                   Probar Gratis
                 </button>

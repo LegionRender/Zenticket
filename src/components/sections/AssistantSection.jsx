@@ -22,8 +22,8 @@ const AssistantSection = () => {
     return () => media.removeEventListener("change", listener);
   }, []);
 
-  const mascotSize = isMobile ? 433 : 578;
-  const videoSize = isMobile ? 525 : 700;
+  const mascotSize = isMobile ? 290 : 578;
+  const videoSize = isMobile ? 365 : 700;
 
   return (
     <section
@@ -34,9 +34,9 @@ const AssistantSection = () => {
       <div className="absolute inset-0 zt-light-grid opacity-40" />
 
       <div className="relative max-w-[1240px] mx-auto px-6 lg:px-8 py-6 sm:py-12 lg:py-28">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div className="grid lg:grid-cols-2 gap-4 lg:gap-12 items-center">
           {/* Mascot with animated video aura */}
-          <div className="relative flex justify-center items-center min-h-[380px] lg:min-h-[680px]">
+          <div className="relative flex justify-center items-center min-h-[290px] lg:min-h-[680px]">
             {/* Fallback aura — shows through when the video can't decode */}
             <div className="absolute inset-0 -mx-6 lg:-mx-12">
               <ZenAura theme="light" intensity={1} />
@@ -79,8 +79,8 @@ const AssistantSection = () => {
             </div>
 
             <h2 className="font-display font-extrabold mt-5 text-[34px] sm:text-[42px] lg:text-[48px] leading-[1.05] tracking-tight text-slate-900">
-              Tu asistente personal
-              <br /> de <span className="text-blue-600">facturación</span>
+              Tu asistente personal{" "}
+              <br className="hidden sm:inline" /> de <span className="text-blue-600">facturación</span>
             </h2>
 
             <p className="mt-5 text-[15px] sm:text-[16px] leading-7 text-slate-600 max-w-[520px]">

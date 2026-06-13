@@ -69,7 +69,7 @@ const PricingSection = ({ onChoose }) => {
       className="relative bg-white"
     >
       <div className="absolute inset-0 zt-soft-bg opacity-50" />
-      <div className="relative max-w-[1240px] mx-auto px-6 lg:px-8 py-16 lg:py-24">
+      <div className="relative max-w-[1240px] mx-auto px-6 lg:px-8 py-5 sm:py-8 lg:py-24">
         <div className="grid lg:grid-cols-12 gap-10 items-start">
           {/* Title column */}
           <div className="lg:col-span-3 lg:pt-12">
@@ -78,7 +78,7 @@ const PricingSection = ({ onChoose }) => {
               <span className="text-blue-600">tranquilidad</span> que necesitas
             </h2>
             <svg
-              className="mt-6 text-slate-300"
+              className="hidden sm:block mt-6 text-slate-300"
               width="100"
               height="60"
               viewBox="0 0 100 60"

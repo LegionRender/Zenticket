@@ -41,7 +41,7 @@ const FAQSection = () => {
       className="relative bg-white"
     >
       <div className="absolute inset-0 zt-soft-bg opacity-40" />
-      <div className="relative max-w-[1240px] mx-auto px-6 lg:px-8 py-16 lg:py-20">
+      <div className="relative max-w-[1240px] mx-auto px-6 lg:px-8 py-8 lg:py-20">
         <div className="grid lg:grid-cols-12 gap-10">
           <div className="lg:col-span-3">
             <h2 className="font-display font-extrabold text-[28px] sm:text-[32px] lg:text-[36px] leading-[1.05] tracking-tight text-slate-900">

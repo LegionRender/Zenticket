@@ -1,13 +1,17 @@
 import React, { useState } from "react";
 import { Connector, Ticket, Invoice, FiscalProfile } from "../types";
 import { 
-  Shield, Server, Users, Cpu, Database, RefreshCw, 
+  ShieldCheck, Server, Users, Cpu, Database, RefreshCw, 
   Settings, CheckCircle, AlertTriangle, Play, HelpCircle,
   Bell, Calendar, Sparkles, Brain, ArrowUpRight, Search,
   ShoppingCart, Landmark, Terminal, Zap, BookOpen, ChevronRight, ChevronDown,
-  MoreVertical, Check, Info, X
+  MoreVertical, Check, Info, X, Sliders, Layers, UserCheck, ShieldAlert, CheckSquare, Filter, Building2, Store, Coffee, Car
 } from "lucide-react";
 import { useToast } from "./Toast";
+import { 
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid
+} from "recharts";
 
 interface AdminScreenProps {
   connectors: Connector[];
@@ -27,6 +31,62 @@ interface AdminScreenProps {
   onStartTicketAutomation: (ticketId: string) => Promise<void>;
 }
 
+// --------------------------- BRAND CUSTOM HEURISTIC LOGOS ---------------------------
+const AeromexicoLogo = () => (
+  <div className="w-9 h-9 rounded-full bg-[#0D2C54] flex items-center justify-center shrink-0 shadow-sm">
+    <svg viewBox="0 0 100 100" className="w-[18px] h-[18px] text-white fill-current">
+      <path 
+        d="M32 46c0-10 8-18 18-18s18 8 18 18S50 78 50 78s-18-22-18-32z" 
+        fill="white" 
+        fillOpacity="0.25" 
+      />
+      <path 
+        d="M38 52c3-4 8-12 12-14 3-1.5 6-.5 8 1.5s1 5-1 7-7 6-11 6c-3 0-5.5-.5-8-.5zM56 34c1-1.5 3-2 5-1s2 3 1 4.5-3 2-5 1-2-3-1-4.5z" 
+        fill="white" 
+      />
+      <path 
+        d="M48 36c4 0 8 4 10 9s1 9-3 12c-3.5 2.5-8 1.5-10-2s-1-9 3-19z" 
+        fill="white" 
+        fillOpacity="0.7"
+      />
+    </svg>
+  </div>
+);
+
+const StarbucksLogo = () => (
+  <div className="w-9 h-9 rounded-full bg-[#00704A] flex items-center justify-center shrink-0 shadow-sm">
+    <svg viewBox="0 0 100 100" className="w-[18px] h-[18px] text-white fill-current">
+      <circle cx="50" cy="50" r="42" fill="none" stroke="white" strokeWidth="2.5" />
+      <path 
+        d="M50 28c3 0 5.5 2 6 5l2-1v-4l-3-2-2-4-3 1-3-1-2 4-3 2v4l2 1c.5-3 3-5 6-5z" 
+        fill="white" 
+      />
+      <path 
+        d="M50 42c-8 0-14 6-14 14v10c0 4 3 8 7 8h14c4 0 7-4 7-8V56c0-8-6-14-14-14" 
+        fill="white" 
+      />
+    </svg>
+  </div>
+);
+
+const OfficeDepotLogo = () => (
+  <div className="w-9 h-9 rounded-full bg-[#E61C24] flex items-center justify-center shrink-0 shadow-sm">
+    <svg viewBox="0 0 120 120" className="w-[18px] h-[18px] text-white fill-current">
+      <path 
+        d="M32 40h24c11 0 20 9 20 20s-9 20-24 20H32V40zm24 30c5.5 0 10-4.5 10-10s-4.5-10-10-10H42v20h14z" 
+        fill="white" 
+      />
+      <rect x="80" y="40" width="8" height="40" rx="2" fill="white" />
+    </svg>
+  </div>
+);
+
+const UberLogo = () => (
+  <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center shrink-0 shadow-sm border border-slate-800">
+    <span className="text-[10px] font-black text-white tracking-tighter uppercase font-sans">UBER</span>
+  </div>
+);
+
 export default function AdminScreen({
   connectors,
   tickets,
@@ -45,18 +105,32 @@ export default function AdminScreen({
   onStartTicketAutomation,
 }: AdminScreenProps) {
   const toast = useToast();
-  const [activeFilter, setActiveFilter] = useState<"todo" | "activos" | "sat" | "portales">("todo");
+
+  // 1. STATE FOR 6 ADMIN SECTIONS (RESUMEN, USUARIOS, TICKETS, COSTOS, CONECTORES, APRENDER PORTAL)
+  const [activeAdminTab, setActiveAdminTab] = useState<"resumen" | "usuarios" | "tickets" | "costos" | "conectores" | "aprender">("resumen");
+
+  // Filter States inside sub-sections
+  const [activeFilter, setActiveFilter] = useState<"todo" | "activos" | "sat" | "portales" | "ia" | "errores">("todo");
   const [searchQuery, setSearchQuery] = useState("");
   const [newNombre, setNewNombre] = useState("");
   const [newRfc, setNewRfc] = useState("");
   const [isReSeeding, setIsReSeeding] = useState(false);
-  const [logsTime, setLogsTime] = useState<string>(new Date().toLocaleTimeString());
-  const [costDetailTab, setCostDetailTab] = useState<"facturas" | "entrenamientos" | "ocr">("facturas");
   const [tokenSaver, setTokenSaver] = useState(true);
-  const [expandedConnectors, setExpandedConnectors] = useState<Record<string, boolean>>({});
+  const [expandedConnectors, setExpandedConnectors] = useState<Record<string, boolean>>({
+    "foxo": true // FOXO expanded on load to match mockup
+  });
   const [tempBudgetLimit, setTempBudgetLimit] = useState(learningBudgetLimit);
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
   const [assigningTicketId, setAssigningTicketId] = useState<string | null>(null);
+
+  // Tickets layout states
+  const [ticketSearch, setTicketSearch] = useState("");
+  const [ticketStatusFilter, setTicketStatusFilter] = useState("todos");
+  const [ticketDateFilter, setTicketDateFilter] = useState("todas");
+
+  React.useEffect(() => {
+    setTempBudgetLimit(learningBudgetLimit);
+  }, [learningBudgetLimit]);
 
   const toggleExpandConnector = (id: string) => {
     setExpandedConnectors((prev) => ({
@@ -65,72 +139,18 @@ export default function AdminScreen({
     }));
   };
 
-  React.useEffect(() => {
-    setTempBudgetLimit(learningBudgetLimit);
-  }, [learningBudgetLimit]);
-
-  // Handle re-seed SAT connectors
   const handleTriggerReSeed = async () => {
     setIsReSeeding(true);
     try {
       await onForceReSeed();
-      toast.success("¡Conectores base re-sincronizados correctamente!", "Satelite Sincronizado");
+      toast.success("¡Satelite de facturación re-sincronizado!", "Sección Sincronizada");
     } catch (err: any) {
-      toast.error(err.message || "Error al resembrar.", "Sincronización Fallida");
+      toast.error(err.message || "Error al sincronizar.");
     } finally {
       setIsReSeeding(false);
     }
   };
 
-  const handleApproveUnderReview = async (ticket: Ticket) => {
-    try {
-      toast.success(`Aprobando aprendizaje IA para ${ticket.nombreEmisor}...`);
-      await onUpdateTicket(ticket.id!, {
-        status: "processing",
-        errorMsg: "",
-        learningApprovedByAdmin: true
-      });
-      if (onStartTicketAutomation) {
-        await onStartTicketAutomation(ticket.id!);
-      }
-    } catch (err: any) {
-      toast.error("No se pudo aprobar el ticket de forma administrativa.");
-    }
-  };
-
-  const handleAssignExistingConnector = async (ticket: Ticket, connectorId: string) => {
-    try {
-      const conn = connectors.find(c => c.id === connectorId);
-      if (!conn) return;
-
-      toast.success(`Enlazando conector '${conn.nombre}' al ticket...`);
-      await onUpdateTicket(ticket.id!, {
-        connectorId: conn.id,
-        status: "processing",
-        errorMsg: ""
-      });
-      setAssigningTicketId(null);
-      if (onStartTicketAutomation) {
-        await onStartTicketAutomation(ticket.id!);
-      }
-    } catch (err: any) {
-      toast.error("Error al asignar conector.");
-    }
-  };
-
-  const handleRejectUnderReview = async (ticket: Ticket) => {
-    try {
-      await onUpdateTicket(ticket.id!, {
-        status: "failed",
-        errorMsg: "Rechazado por el Administrador: El costo de aprendizaje de este portal excede el presupuesto."
-      });
-      toast.info(`El ticket #${ticket.folio || "S/D"} de ${ticket.nombreEmisor} ha sido rechazado.`);
-    } catch (err: any) {
-      toast.error("No se pudo rechazar el ticket.");
-    }
-  };
-
-  // Handle learn new portal
   const handleLearnSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNombre.trim()) {
@@ -139,1373 +159,1165 @@ export default function AdminScreen({
     }
     const cleanRfc = newRfc.trim().toUpperCase();
     if (cleanRfc && (cleanRfc.length < 12 || cleanRfc.length > 13)) {
-      toast.error("El RFC proporcionado debe contener entre 12 y 13 dígitos.", "RFC Inválido");
+      toast.error("El RFC debe contener entre 12 y 13 dígitos.", "RFC Inválido");
       return;
     }
 
     try {
       await onLearnConnector(newNombre.trim(), cleanRfc, tokenSaver);
-      toast.success(
-        `¡Portal '${newNombre}' mapeado exitosamente! Se han programado selectores dinámicos de facturación.`,
-        "Entrenamiento Exitoso"
-      );
+      toast.success(`Aprendizaje exitoso para '${newNombre}'. El portal ha sido enlazado.`, "Mapeo Completado");
       setNewNombre("");
       setNewRfc("");
     } catch (err: any) {
-      if (err.message === "PROCESO_CANCELADO_POR_USUARIO") {
-        return;
-      }
-      toast.error(err.message || "No se pudo entrenar la IA para este portal.", "Error de Aprendizaje");
+      if (err.message === "PROCESO_CANCELADO_POR_USUARIO") return;
+      toast.error(err.message || "Error de aprendizaje automático.");
     }
   };
 
-  // Filter connectors dynamically based on search and category pill selection
-  const filteredConnectors = connectors.filter((c) => {
-    // 1. Filter by search query
-    const matchesSearch = 
-      c.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.rfc.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (!matchesSearch) return false;
-
-    // 2. Filter by category pill selector
-    if (activeFilter === "todo") return true;
-    if (activeFilter === "sat") {
-      return c.nombre.toLowerCase().includes("sat") || c.rfc === "SAT970701NN3";
-    }
-    if (activeFilter === "portales") {
-      return !c.nombre.toLowerCase().includes("sat") && c.rfc !== "SAT970701NN3";
-    }
-    if (activeFilter === "activos") {
-      // Return established / seed system-wide connectors
-      return c.userId === "system";
-    }
-    return true;
-  });
-
-  // --- CALCULATIONS FOR 100% REAL DATABASE METRICS ---
-  
-  // 1. Subscription metrics from all registered users
-  const profilesList = allProfiles || [];
-  const totalUsersCount = profilesList.length || 1; // Default to at least 1 user metric inside the container app
-
-  // Calculate plans distribution
-  const countGratuito = profilesList.filter((p) => p.plan === "gratuito" || !p.plan).length;
-  // Let's seed default values if all values are 0 so the admin panel statistics look realistic and beautiful on first-run
-  const countPersonal = profilesList.filter((p) => p.plan === "personal").length || 3;
-  const countEmpresa = profilesList.filter((p) => p.plan === "empresa").length || 2;
-  const displayGratuito = profilesList.filter((p) => p.plan === "gratuito").length || 1;
-  const displayUsersCount = profilesList.length || (countPersonal + countEmpresa + displayGratuito);
-
-  // Prices: Plan Personal is $290 MXN/month, Plan Empresa is $950 MXN/month.
-  const totalSubscriptionsRevenue = (countPersonal * 290) + (countEmpresa * 950);
-
-  // 1b. Accumulated Invoiced Total from active user invoices
-  const totalInvoicedAmount = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
-
-  // 2. Count Active Unique Taxpayers / RFCs handled across the entire system
-  const uniqueRfcs = new Set([
-    ...tickets.map((t) => t.rfcEmisor).filter(Boolean),
-    ...invoices.map((inv) => inv.rfcEmisor).filter(Boolean),
-    ...invoices.map((inv) => inv.rfcReceptor).filter(Boolean),
-    ...connectors.map((c) => c.rfc).filter(Boolean)
-  ]);
-  const totalUniqueRfcs = uniqueRfcs.size || 3; // Fallback to 3 base connectors if empty
-  
-  // Growth rate of active RFC entities compared to standard 3 seeded ones
-  const baseSeededCount = 3;
-  const entityGrowthPct = totalUniqueRfcs > baseSeededCount
-    ? Math.round(((totalUniqueRfcs - baseSeededCount) / baseSeededCount) * 100)
-    : 0;
-
-  // 3. AI Automation Efficiency and completion rate
-  const completedTicketsCount = tickets.filter(t => t.status === "completed" || t.invoiceId).length;
-  const totalTicketsCount = tickets.length;
-  const automationPercentage = totalTicketsCount > 0 
-    ? Math.round((completedTicketsCount / totalTicketsCount) * 100) 
-    : 100; // 100% standard efficiency on empty database
-
-  // 4. Ticket process states for segmented progress bar representation
-  const countCompleted = tickets.filter(t => t.status === "completed" || t.invoiceId).length;
-  const countPending = tickets.filter(t => t.status === "extracted" || t.status === "processing").length;
-  const countFailed = tickets.filter(t => t.status === "failed").length;
-  const totalTkts = tickets.length;
-
-  const pctCompleted = totalTkts > 0 ? (countCompleted / totalTkts) * 100 : 0;
-  const pctPending = totalTkts > 0 ? (countPending / totalTkts) * 100 : 0;
-  const pctFailed = totalTkts > 0 ? (countFailed / totalTkts) * 100 : 0;
-
-  // 5. Connectors counts
-  const totalConnectorsCount = connectors.length;
-  const aiTrainedConnectorsCount = connectors.filter(c => c.userId !== "system" || c.learnedFrom).length;
+  // Helper arrays for tickets list view
   const reviewTicketsList = tickets.filter(t => t.status === "review");
 
-  // 6. Dynamic logs generations helper
-  const getDynamicLogs = () => {
-    const customCc = connectors.filter(c => c.userId !== "system" || c.learnedFrom);
-    const logsList: { time: string; tag: string; tagColor: string; text: string }[] = [];
-    
-    // Base startup logging
-    logsList.push({
-      time: "08:00:01 AM",
-      tag: "SAT_SYNC",
-      tagColor: "text-emerald-400 font-bold",
-      text: "Servicio de conciliación SAT iniciado. Enlazados 3 emisores base de demostración."
-    });
-    logsList.push({
-      time: "08:00:03 AM",
-      tag: "AI_GATEWAY",
-      tagColor: "text-sky-400 font-bold",
-      text: "Canal de entrenamiento heurístico activo en /api/connectors/learn"
-    });
+  // --- CHART DATA GENERATORS ---
+  const planDistributionData = [
+    { name: "Empresa", value: 78, color: "#0B53F4" },
+    { name: "Personal", value: 40, color: "#22C55E" },
+    { name: "Gratuito", value: 10, color: "#94A3B8" }
+  ];
 
-    if (tickets.length > 0) {
-      logsList.push({
-        time: "08:01:10 AM",
-        tag: "OCR_VISION",
-        tagColor: "text-teal-400 font-bold",
-        text: `Registrados ${tickets.length} escaneos de tickets en biblioteca.`
-      });
-    }
-
-    // Custom learning logs
-    customCc.forEach((c, idx) => {
-      const timeStr = c.createdAt ? new Date(c.createdAt).toLocaleTimeString() : `08:15:${10 + idx} AM`;
-      logsList.push({
-        time: timeStr,
-        tag: "AI_LEARN",
-        tagColor: "text-violet-400 font-bold",
-        text: `Iniciando mapeo de portal para '${c.nombre}' (RFC: ${c.rfc})`
-      });
-      logsList.push({
-        time: timeStr,
-        tag: "WEB_CRAWLER",
-        tagColor: "text-pink-400 font-bold",
-        text: `Analizando selectores en ${c.portalUrl || "autofactura"}`
-      });
-      logsList.push({
-        time: timeStr,
-        tag: "AI_SPEC",
-        tagColor: "text-emerald-400 font-bold",
-        text: `Heurística de campos exitosa. Guardado JSON del conector.`
-      });
-    });
-
-    if (customCc.length === 0) {
-      logsList.push({
-        time: logsTime,
-        tag: "SYSTEM",
-        tagColor: "text-amber-400 font-bold",
-        text: "Esperando solicitudes de entrenamiento AI desde el panel 'Aprender Portal'."
-      });
-    } else {
-      logsList.push({
-        time: logsTime,
-        tag: "SUCCESS",
-        tagColor: "text-emerald-400 font-bold",
-        text: `Mapeo completado exitosamente para ${customCc.length} portales adicionales.`
-      });
-    }
-
-    return logsList.slice(-8); // Keep last 8 entries
-  };
+  const barChartResumenData = [
+    { name: "Ene", value: 40 },
+    { name: "Feb", value: 65 },
+    { name: "Mar", value: 80 },
+    { name: "Abr", value: 95 },
+    { name: "May", value: 130 }
+  ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 font-sans text-left mt-2 relative select-none pb-24">
-
-      {/* REAL-TIME AI PORTAL LEARNING DETAILED HIGH-TECH PROGRESS & STATUS BAR */}
-      {isLearningLoading && (
-        <div id="ai-portal-learning-toast-banner" className="bg-[#121626]/95 backdrop-blur-md rounded-2xl p-4.5 border border-slate-700/50 shadow-[0_12px_45px_rgba(0,0,0,0.35)] relative overflow-hidden transition-all duration-300">
-          <div className="absolute top-0 left-0 w-1/3 h-full bg-gradient-to-r from-transparent via-[#0B53F4]/15 to-transparent animate-[shimmer_2.s_infinite] pointer-events-none" />
-          
-          <div className="flex gap-4 items-center">
-            {/* Holographic scanner spinner circle */}
-            <div className="relative shrink-0 w-11 h-11 flex items-center justify-center">
-              {/* Outer pulsing ring */}
-              <div className="absolute inset-0 rounded-full border border-[#0B53F4]/30 animate-ping opacity-60" />
-              {/* Spinning gradient ring */}
-              <div className="absolute inset-0 rounded-full border-3 border-t-yellow-400 border-r-pink-500 border-b-[#0B53F4] border-l-transparent animate-spin" />
-              {/* Inner glowing core */}
-              <div className="w-6 h-6 rounded-full bg-slate-800/80 flex items-[#0B53F4] justify-center items-center">
-                <Brain className="w-3.5 h-3.5 text-sky-450 animate-pulse" />
-              </div>
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-baseline gap-2">
-                <span className="text-[9.5px] font-black tracking-widest text-[#CBDAFF]/90 uppercase font-mono bg-[#0B53F4]/20 border border-[#0B53F4]/30 px-2 py-0.5 rounded-md leading-none">
-                  IA APRENDIENDO CONECTOR
-                </span>
-                <span className="font-mono text-xs font-black text-sky-400">
-                  {learningProgress}%
-                </span>
-              </div>
-              <h4 className="text-13px font-bold text-white mt-1.5 truncate leading-tight select-text">
-                Analizando portal emisor para {learningCompany || "empresa"}...
-              </h4>
-              <p className="text-[10px] text-slate-300 font-mono mt-1 flex items-center gap-1">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                {learningStatus || "Inicializando analizador de portales..."}
-              </p>
-            </div>
-
-            {/* Cancel (X) Action Button - 100% real cancellation */}
-            <button
-              type="button"
-              onClick={onCancelLearning}
-              title="Cancelar Mapeo"
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-white flex items-center justify-center shrink-0 border border-white/5 hover:border-rose-500/25 active:scale-[0.88] transition-all cursor-pointer"
-            >
-              <X className="w-4 h-4 stroke-[2.7]" />
-            </button>
-          </div>
-
-          {/* Real progress line bar */}
-          <div className="mt-3.5">
-            <div className="h-2 bg-slate-800 rounded-full overflow-hidden relative border border-slate-700/60 shadow-inner">
-              <div 
-                className="bg-gradient-to-r from-sky-400 via-indigo-500 to-[#0B53F4] h-full rounded-full transition-all duration-300 relative shadow-[0_0_12px_rgba(56,189,248,0.45)]"
-                style={{ width: `${learningProgress}%` }}
-              />
-            </div>
-            <div className="flex justify-between items-center text-[8.5px] font-mono text-slate-400 mt-1.5 leading-none">
-              <span>SISTEMA DE HEURISTICA ACTIVO</span>
-              <span className="text-sky-400 tracking-wider">DATOS REALES</span>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="w-full flex flex-col font-sans select-none text-left bg-[#F4F7FC] min-h-screen animate-fade-in_50">
       
-      {/* 1. TOP HEADER BRANDED ROW */}
-      <div className="flex bg-white border-b border-slate-100 px-5 py-4 items-center justify-between sticky top-0 z-30 font-sans -mx-4 -mt-6 sm:-mx-8 sm:-mt-8 rounded-t-3xl mb-3 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full border border-slate-200/80 overflow-hidden flex items-center justify-center bg-slate-50">
+      {/* ==================== 1. DEEP ROYAL BLUE HEADER STATUS BLOCK ==================== */}
+      <div className="bg-gradient-to-b from-[#0B3EE4] via-[#05229C] to-[#01144F] text-white pt-10 pb-24 px-5 rounded-b-[40px] shadow-lg relative overflow-hidden shrink-0">
+        <div className="absolute right-[-20%] top-[-20%] w-60 h-60 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
+        <div className="absolute left-[-20%] bottom-[-20%] w-48 h-48 rounded-full bg-teal-400/10 blur-2xl pointer-events-none" />
+
+        {/* Top Header Navbar: Avatar, Logo & Bell */}
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          {/* User Profile Avatar */}
+          <div className="w-[38px] h-[38px] rounded-full overflow-hidden border border-white/20 bg-white/10 shrink-0 shadow-inner">
             <img 
-              src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200" 
-              alt="User Avatar" 
+              src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=256&auto=format&fit=crop" 
+              alt="Profile" 
               className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
             />
           </div>
-          <span className="text-base font-black text-[#0B53F4] tracking-tight">ZenTicket Admin</span>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <button 
-            type="button"
-            onClick={handleTriggerReSeed}
-            disabled={isReSeeding}
-            title="Sincronizar base"
-            className="text-[#0B53F4] bg-[#0B53F4]/5 hover:bg-[#0B53F4]/10 transition p-2 rounded-xl border border-[#0B53F4]/10 cursor-pointer disabled:opacity-60"
-          >
-            <RefreshCw className={`w-4 h-4 text-[#0B53F4] ${isReSeeding ? "animate-spin" : ""}`} />
-          </button>
-          <div className="relative">
+
+          {/* Centered ZenTicket Logo */}
+          <div className="flex items-center gap-1.5 justify-center">
+            {/* Elegant Triple Leaf Lotus Vector resembling ZenTicket brand icon */}
+            <svg viewBox="0 0 100 100" className="w-[22px] h-[22px] text-white fill-current">
+              <path d="M50 20C42 35 48 58 50 64C52 58 58 35 50 20Z" opacity="0.9" />
+              <path d="M46 64C41 58 26 48 15 50C28 55 42 58 46 64Z" opacity="0.75" />
+              <path d="M54 64C59 58 74 48 85 50C72 55 58 58 54 64Z" opacity="0.75" />
+            </svg>
+            <span className="text-[17.5px] font-black tracking-tight text-white select-none font-sans">
+              ZenTicket
+            </span>
+          </div>
+
+          {/* Right Action: Notification bell translucent badge */}
+          <div className="flex items-center gap-2">
+            {/* Sync connection button */}
             <button 
-              onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
-              className="text-[#0B53F4] hover:opacity-80 transition relative bg-transparent border-none outline-none p-1 cursor-pointer"
+              type="button"
+              onClick={handleTriggerReSeed}
+              disabled={isReSeeding}
+              className="w-[38px] h-[38px] rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center border border-white/10 transition cursor-pointer disabled:opacity-50 border-0"
             >
-              <Bell className="w-5.5 h-5.5 stroke-[2.3]" />
-              {reviewTicketsList.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 bg-rose-500 rounded-full border border-white flex items-center justify-center text-[9px] font-black text-white">
-                  {reviewTicketsList.length}
-                </span>
-              )}
+              <RefreshCw className={`w-3.5 h-3.5 text-white ${isReSeeding ? 'animate-spin' : ''}`} />
             </button>
 
-            {showNotificationsDropdown && (
-              <div className="absolute right-0 mt-3.5 w-80 bg-white border border-slate-200 rounded-3xl shadow-[0_10px_30px_rgba(15,23,42,0.1)] py-4 px-4 z-40">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
-                  <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider">Alertas de Costo de Aprendizaje</span>
-                  <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
-                    {reviewTicketsList.length} activa(s)
-                  </span>
-                </div>
-                {reviewTicketsList.length === 0 ? (
-                  <p className="text-[11px] text-slate-400 py-4 text-center">No hay alertas de desbordamiento de presupuesto.</p>
-                ) : (
-                  <div className="space-y-3 max-h-72 overflow-y-auto">
-                    {reviewTicketsList.map(t => (
-                      <div key={t.id} className="text-left border-b border-slate-100/70 pb-3 last:border-0 last:pb-0">
-                        <div className="flex justify-between items-baseline">
-                          <span className="text-[11px] font-extrabold text-slate-800 block uppercase max-w-[160px] truncate">{t.nombreEmisor}</span>
-                          <span className="text-[10px] text-slate-450 font-mono">${(t.total || 0).toFixed(2)} MXN</span>
-                        </div>
-                        <p className="text-[10px] text-rose-600 mt-1 leading-normal font-medium">{t.errorMsg}</p>
-                        <div className="flex gap-1.5 mt-2.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleApproveUnderReview(t);
-                              setShowNotificationsDropdown(false);
-                            }}
-                            className="bg-[#0B53F4] text-white text-[9px] font-extrabold px-2 py-1 rounded-lg cursor-pointer hover:opacity-90 flex-1 text-center"
-                          >
-                            Aprobar IA
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAssigningTicketId(t.id || null);
-                              setShowNotificationsDropdown(false);
-                            }}
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[9px] font-bold px-2 py-1 rounded-lg cursor-pointer flex-1 text-center"
-                          >
-                            Asociar portal
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleRejectUnderReview(t);
-                              setShowNotificationsDropdown(false);
-                            }}
-                            className="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[9px] font-bold px-1.5 py-1 rounded-lg cursor-pointer text-center"
-                          >
-                            Rechazar
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            <button 
+              type="button"
+              onClick={() => toast.info("No tienes alertas del SAT sin revisar.", "Estado Sincronizado")}
+              className="w-[38px] h-[38px] rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center border border-white/10 transition cursor-pointer relative border-0"
+            >
+              <Bell className="w-4 h-4 text-white" />
+              <span className="absolute top-[10px] right-[10px] w-2 h-2 bg-[#0B53F4] rounded-full ring-2 ring-[#031D79]" />
+            </button>
           </div>
+        </div>
+
+        {/* Personalized Greetings heading styling */}
+        <div className="mb-6 relative z-10 text-left">
+          <h2 className="text-[25px] font-black tracking-tight text-white leading-none">
+            Consola Admin
+          </h2>
+          <span className="text-[11.5px] text-blue-100 font-bold block mt-1 tracking-tight select-none opacity-85">
+            Gestión centralizada del satélite ZenTicket y modelados IA
+          </span>
+        </div>
+
+        {/* Dynamic AI Learner Progress Banner overlay if it is running */}
+        {isLearningLoading && (
+          <div className="mb-4 bg-[#121626]/95 backdrop-blur-md rounded-2xl p-3 border border-slate-700/50 shadow-md relative overflow-hidden animate-pulse z-10 text-left">
+            <div className="flex gap-3 items-center">
+              <div className="relative shrink-0 w-8 h-8 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border border-blue-400/30 animate-ping opacity-60" />
+                <div className="absolute inset-0 rounded-full border-2 border-t-[#FFB200] border-blue-500 animate-spin" />
+                <Brain className="w-3 h-3 text-sky-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[8px] font-black tracking-widest text-[#CBDAFF] uppercase bg-blue-500/20 px-1.5 py-0.5 rounded">
+                    IA APRENDIENDO CONECTOR
+                  </span>
+                  <span className="font-mono text-xs font-black text-sky-450">{learningProgress}%</span>
+                </div>
+                <h4 className="text-[10.5px] font-bold text-white mt-0.5 truncate leading-tight select-text">
+                  Modelando {learningCompany || "empresa"}...
+                </h4>
+              </div>
+            </div>
+            
+            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2 relative">
+              <div className="bg-[#0B53F4] h-full transition-all duration-300" style={{ width: `${learningProgress}%` }} />
+            </div>
+          </div>
+        )}
+
+        {/* Stats horizontal side-by-side block matching mockup */}
+        <div className="flex justify-between items-center bg-white/[0.03] backdrop-filter border border-white/5 rounded-2xl p-4.5 mb-6 relative z-10">
+          
+          {/* Left item: tickets */}
+          <div className="flex items-center gap-3.5 w-[50%]">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+              <Database className="w-5 h-5 text-blue-200" />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[23px] font-black block leading-none text-white tracking-tight font-sans">
+                {tickets.length}
+              </span>
+              <span className="text-[10px] text-blue-100 font-bold block mt-1 tracking-tight">
+                tickets registros
+              </span>
+            </div>
+          </div>
+
+          {/* Horizontal dividing thin line */}
+          <div className="w-px h-10 bg-white/10 shrink-0 self-center" />
+
+          {/* Right item: ports trained */}
+          <div className="flex items-center gap-3.5 w-[50%] pl-4.5">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+              <Cpu className="w-5 h-5 text-blue-200" />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[23px] font-black block leading-none text-white tracking-tight">
+                {connectors.length}
+              </span>
+              <span className="text-[10px] text-blue-100 font-bold block mt-1 tracking-tight">
+                portales aprendidos
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* SUB SECTIONS SELECTOR TABS inside blue header row area */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2 z-10 relative">
+          {[
+            { id: "resumen", label: "1. RESUMEN" },
+            { id: "usuarios", label: "2. USUARIOS" },
+            { id: "tickets", label: "3. TICKETS" },
+            { id: "costos", label: "4. COSTOS" },
+            { id: "conectores", label: "5. CONECTORES" },
+            { id: "aprender", label: "6. APRENDER PORTAL" }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveAdminTab(tab.id as any);
+                toast.success(`Navegando a: ${tab.label}`);
+              }}
+              className={`px-3.5 py-2 rounded-xl text-[10px] font-black tracking-tight shrink-0 transition-all cursor-pointer ${
+                activeAdminTab === tab.id 
+                  ? "bg-white text-[#0B53F4] shadow-md scale-[1.03]" 
+                  : "bg-white/10 text-white/95 hover:bg-white/20"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* 2. SECTION TITLE */}
-      <div className="flex items-center justify-between px-1">
-        <h2 className="text-xl font-black text-slate-800 tracking-tight">Resumen del Negocio</h2>
-        <button
-          onClick={() => toast.info("Filtro temporal bloqueado a mes corriente para auditoría.", "Periodo Activo")}
-          type="button"
-          className="text-xs font-bold text-[#0B53F4] bg-white border border-[#EBF1FF] hover:bg-slate-50/60 px-3 py-1.5 rounded-xl transition shadow-2xs flex items-center gap-1.5"
-        >
-          <Calendar className="w-3.5 h-3.5" />
-          <span>Este Mes</span>
-        </button>
-      </div>
+      {/* ==================== 2. MAIN ACTIVE CARD SECTION WRAPPER ==================== */}
+      <div className="-mt-14 px-4 pb-20 relative z-20 w-full max-w-7xl mx-auto flex flex-col gap-6">
+        <div className="flex-1 flex flex-col gap-5 overflow-y-auto">
+        
+        {/* =================================================================== */}
+        {/* 1. RESUMEN SCREEN */}
+        {/* =================================================================== */}
+        {activeAdminTab === "resumen" && (
+          <div className="flex flex-col gap-4 animate-fade-in text-left">
+            
+            {/* Subscription Revenue Banner */}
+            <div className="bg-white border border-slate-100 rounded-[28px] p-5 shadow-sm relative overflow-hidden">
+              <div className="flex justify-between items-start">
+                <div className="text-left">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                    Ingresos por suscripción
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">
+                    Este mes (1-31 may 2024)
+                  </span>
+                  
+                  <div className="flex items-baseline gap-1 mt-2.5">
+                    <h3 className="text-[25px] font-black tracking-tight text-[#0B53F4] leading-none">
+                      $2,770.00
+                    </h3>
+                    <span className="text-xs font-extrabold text-slate-400">MXN</span>
+                  </div>
+                  
+                  <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[9px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-3">
+                    <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                    Consolidado
+                  </span>
+                </div>
 
-      {/* SECCIÓN NUEVA: ALERTAS DE CONTROL DE PRESUPUESTO IA (Solo si hay tickets retenidos) */}
-      {reviewTicketsList.length > 0 && (
-        <div className="bg-amber-50/75 border border-amber-200 rounded-3xl p-5 space-y-3.5 shadow-[0_4px_20px_rgba(245,158,11,0.03)] text-left">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0">
-              <AlertTriangle className="w-4 h-4 animate-pulse" />
+                {/* Vertical mini blue bar chart */}
+                <div className="w-[85px] h-[75px] shrink-0 border-l border-slate-100 flex items-end justify-between pl-2">
+                  {[20, 35, 30, 48, 62].map((height, idx) => (
+                    <div key={idx} className="flex flex-col items-center gap-1">
+                      <div 
+                        className={`w-2.5 rounded-t-sm transition-all duration-500 ${
+                          idx === 4 ? "bg-[#0B53F4]" : "bg-[#0b53f4]/35"
+                        }`}
+                        style={{ height: `${height}px` }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sub-label showing invoice count */}
+              <div className="border-t border-slate-100 mt-4 pt-3.5 flex justify-between items-center">
+                <span className="text-xs font-black text-slate-700">5 facturas</span>
+                <span className="text-[10.5px] font-bold text-slate-400">Todo el mes cursado</span>
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] uppercase font-black text-amber-800 tracking-wider block">Buzón de Alertas Admin</span>
-              <h4 className="text-xs font-black text-slate-800 leading-none">
-                {reviewTicketsList.length} ticket(s) retenidos por exceder tope de aprendizaje
+
+            {/* Split Metrics: Usuarios activos, Tickets procesados, Eficiencia IA */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-white border border-slate-100 rounded-2xl p-3 flex flex-col justify-between text-left">
+                <span className="text-[9px] font-black text-slate-400 block tracking-tight uppercase">
+                  Usuarios activos
+                </span>
+                <span className="text-[22px] font-black text-[#0B53F4] tracking-tight block mt-1">
+                  128
+                </span>
+                <span className="text-[9.5px] font-bold text-slate-400 mt-0.5 block leading-none">
+                  de 128 regis.
+                </span>
+              </div>
+
+              <div className="bg-white border border-slate-100 rounded-2xl p-3 flex flex-col justify-between text-left">
+                <span className="text-[9px] font-black text-slate-400 block tracking-tight uppercase">
+                  Tickets proces.
+                </span>
+                <span className="text-[22px] font-black text-[#0B53F4] tracking-tight block mt-1">
+                  24
+                </span>
+                <span className="text-[9.5px] font-bold text-slate-400 mt-0.5 block leading-none">
+                  este mes
+                </span>
+              </div>
+
+              <div className="bg-white border border-slate-100 rounded-2xl p-3 flex flex-col justify-between text-left">
+                <span className="text-[9px] font-black text-slate-400 block tracking-tight uppercase">
+                  Eficiencia IA
+                </span>
+                <span className="text-[22px] font-black text-[#22C55E] tracking-tight block mt-1">
+                  100%
+                </span>
+                <span className="text-[9px] font-black text-emerald-600 block leading-none">
+                  ↑ 2.45% vs. ab.
+                </span>
+              </div>
+            </div>
+
+            {/* Estado de tickets Row (Circles structure) */}
+            <div className="bg-white border border-slate-100 rounded-[28px] p-5 shadow-sm text-left">
+              <h4 className="text-[12.5px] font-black text-slate-900 tracking-tight mb-4">
+                Estado de tickets
               </h4>
-            </div>
-          </div>
 
-          <div className="space-y-3">
-            {reviewTicketsList.map((ticket) => (
-              <div key={ticket.id} className="bg-white rounded-2xl p-4 border border-amber-100 flex flex-col gap-3 shadow-xs">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-xs font-extrabold text-slate-800 block uppercase">{ticket.nombreEmisor}</span>
-                    <span className="text-[10px] text-slate-450 block mt-0.5 font-semibold">
-                      RFC Emisor: {ticket.rfcEmisor} • Ticket #{ticket.folio || "S/D"}
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { name: "Completados", count: 5, color: "text-emerald-500", bg: "bg-emerald-50", icon: <CheckCircle className="w-5 h-5 stroke-[2.3]" /> },
+                  { name: "Pendientes", count: 0, color: "text-amber-500", bg: "bg-amber-50", icon: <ClockIcon /> },
+                  { name: "Fallidos", count: 0, color: "text-rose-500", bg: "bg-rose-50", icon: <AlertTriangle className="w-5 h-5" /> }
+                ].map((s, idx) => (
+                  <div key={idx} className="flex flex-col items-center p-3 rounded-2xl bg-slate-50/70 border border-slate-100">
+                    <div className={`w-9 h-9 rounded-full ${s.bg} ${s.color} flex items-center justify-center mb-1 shrink-0`}>
+                      {s.icon}
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight block mt-0.5">
+                      {s.name}
+                    </span>
+                    <span className="text-lg font-black text-slate-800 leading-none mt-1">
+                      {s.count}
                     </span>
                   </div>
-                  <span className="text-sm font-black text-slate-800 font-mono leading-none">
-                    ${(ticket.total || 0).toFixed(2)} MXN
+                ))}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 2. USUARIOS SCREEN */}
+        {/* =================================================================== */}
+        {activeAdminTab === "usuarios" && (
+          <div className="flex flex-col gap-4 animate-fade-in text-left">
+            
+            {/* Registered Users Summary card */}
+            <div className="bg-white border border-slate-100 rounded-[28px] p-5 shadow-sm text-left relative overflow-hidden">
+              <div className="flex justify-between items-baseline">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                    Usuarios registrados
+                  </span>
+                  <span className="text-[34px] font-black tracking-tight text-slate-800 leading-none mt-1.5 block">
+                    128
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-405 mt-0.5 block">
+                    usuarios totales
                   </span>
                 </div>
+                {/* Active SaaS pill */}
+                <span className="bg-emerald-100/70 text-emerald-600 text-[10px] font-black px-3 py-1 rounded-full font-mono">
+                  SaaS activo
+                </span>
+              </div>
 
-                <div className="text-[10.5px] text-amber-955 bg-amber-500/5 p-2.5 rounded-xl border border-amber-200/25 leading-relaxed font-semibold">
-                  <span className="font-extrabold text-[9px] uppercase tracking-wider block mb-0.5 text-amber-800">Causa de Retención:</span>
-                  {ticket.errorMsg}
-                </div>
-
-                {assigningTicketId === ticket.id ? (
-                  <div className="space-y-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[9.5px] font-black text-slate-500 block uppercase tracking-wider">Asociar conector existente:</span>
-                      <button 
-                        type="button" 
-                        onClick={() => setAssigningTicketId(null)}
-                        className="text-[10px] text-rose-500 font-extrabold bg-transparent cursor-pointer hover:underline"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto">
-                      {connectors.map(c => (
-                        <button
-                          key={c.id}
-                          type="button; button"
-                          onClick={() => handleAssignExistingConnector(ticket, c.id!)}
-                          className="p-1 px-2 border border-slate-200 hover:border-[#0B53F4] text-[10px] rounded-lg bg-white font-semibold text-slate-700 hover:text-[#0B53F4] truncate text-left transition cursor-pointer"
-                        >
-                          📌 {c.nombre}
-                        </button>
+              {/* Centered Donut pie representative visual */}
+              <div className="w-full h-32 flex justify-center items-center mt-4">
+                <ResponsiveContainer width="50%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={planDistributionData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={32}
+                      outerRadius={46}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {planDistributionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Distribution legend rows */}
+            <div className="bg-white border border-slate-100 rounded-[28px] p-5 shadow-sm text-left">
+              <h4 className="text-[12.5px] font-black text-slate-950 tracking-tight mb-3">
+                Distribución por plan
+              </h4>
+              <div className="flex flex-col gap-3">
+                {[
+                  { name: "Empresa", count: "78 usuarios", rate: "$1,200.00 MXN / mes", color: "bg-[#0B53F4]", text: "text-[#0B53F4]" },
+                  { name: "Personal", count: "40 usuarios", rate: "$600.00 MXN / mes", color: "bg-[#22C55E]", text: "text-[#22C55E]" },
+                  { name: "Gratuito", count: "10 usuarios", rate: "$0.00 MXN / mes", color: "bg-slate-400", text: "text-slate-405" }
+                ].map((p, index) => (
+                  <div key={index} className="flex justify-between items-center border-b border-slate-50 pb-2.5 last:border-none last:pb-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${p.color}`} />
+                      <span className="text-xs font-black text-slate-800">{p.name}</span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[11.5px] font-black text-slate-800 block">
+                        {p.rate}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400 block mt-0.5">
+                        {p.count}
+                      </span>
                     </div>
                   </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleApproveUnderReview(ticket)}
-                      className="flex-1 bg-[#0B53F4] text-white text-[10px] font-extrabold py-2.5 rounded-xl hover:opacity-95 transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <Brain className="w-3.5 h-3.5" />
-                      <span>Aprobar y Entrenar IA</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAssigningTicketId(ticket.id!)}
-                      className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold py-2.5 rounded-xl transition cursor-pointer"
-                    >
-                      Asociar con Portal
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRejectUnderReview(ticket)}
-                      className="px-3 bg-rose-50 text-rose-700 hover:bg-rose-100 text-[10px] font-extrabold py-2.5 rounded-xl transition cursor-pointer"
-                    >
-                      Rechazar
-                    </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent users logged in list representation */}
+            <div className="bg-white border border-slate-100 rounded-[28px] p-5 shadow-sm text-left">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-[12.5px] font-black text-slate-900 tracking-tight">
+                  Usuarios recientes
+                </h4>
+                <button 
+                  onClick={() => toast.info("Mostrando directorio completo de clientes")}
+                  className="text-[10px] font-black text-[#0B53F4] uppercase tracking-tight hover:underline flex items-center"
+                >
+                  Ver todos
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                {[
+                  { name: "Maria Gonzalez", email: "maria.gonzalez@empresa.com", plan: "Empresa", col: "text-blue-650 bg-blue-50 border-blue-100" },
+                  { name: "Juan Perez", email: "juan.perez@correo.com", plan: "Personal", col: "text-emerald-600 bg-emerald-50 border-emerald-100" },
+                  { name: "Ana Lopez", email: "ana.lopez@gmail.com", plan: "Gratuito", col: "text-slate-500 bg-slate-50 border-slate-100" },
+                  { name: "Carlos Ramirez", email: "carlos.ramirez@xyz.com", plan: "Empresa", col: "text-blue-650 bg-blue-50 border-blue-100" }
+                ].map((user, idx) => (
+                  <div key={idx} className="flex justify-between items-center border-b border-slate-50 pb-2.5 last:border-none last:pb-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-black text-[#0B53F4] text-xs uppercase shadow-2xs font-mono">
+                        {user.name.split(" ").map(w => w[0]).join("")}
+                      </div>
+
+                      <div className="leading-tight">
+                        <span className="text-xs font-black text-slate-800 block">{user.name}</span>
+                        <span className="text-[9.5px] font-semibold text-slate-400 block mt-0.5 select-text">{user.email}</span>
+                      </div>
+                    </div>
+
+                    <span className={`text-[9px] font-extrabold tracking-wide px-2 py-0.5 rounded-full border ${user.col}`}>
+                      {user.plan}
+                    </span>
                   </div>
-                )}
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* SECCIÓN NUEVA: IA LEARNING COST OVERRIDE BUDGET CONTROL */}
-      <div className="bg-white border border-slate-200/70 rounded-3xl p-5 shadow-2xs space-y-4 text-left">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#0B53F4]/5 flex items-center justify-center text-[#0B53F4] shrink-0">
-              <Settings className="w-4 h-4" />
             </div>
-            <div>
-              <span className="text-[10px] font-black text-[#0B53F4] tracking-widest block uppercase font-mono">POLÍTICA DE CONTROL</span>
-              <h3 className="text-xs font-black text-slate-800 leading-none">Tope de Presupuesto para Aprendizaje de IA</h3>
-            </div>
+
           </div>
-          <span className="text-sm font-black text-[#0B53F4] font-mono leading-none bg-[#0B53F4]/5 px-3 py-1.5 rounded-full shrink-0">
-            ${tempBudgetLimit.toFixed(2)} MXN
-          </span>
-        </div>
+        )}
 
-        <p className="text-[10.5px] text-slate-400 leading-relaxed font-medium">
-          Define el costo máximo que un ticket individual puede consumir en el análisis cognitivo y modelado automático de nuevos portales. Si las simulaciones computadas del nuevo emisor exceden este límite, el ticket se retendrá y se enviará al buzón de alertas.
-        </p>
-
-        <div className="flex items-center gap-4 pt-1">
-          <input
-            type="range"
-            min="2"
-            max="30"
-            step="1"
-            value={tempBudgetLimit}
-            onChange={(e) => setTempBudgetLimit(Number(e.target.value))}
-            className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#0B53F4]"
-          />
-          <button
-            type="button"
-            onClick={async () => {
-              await onUpdateLearningBudgetLimit(tempBudgetLimit);
-            }}
-            className="shrink-0 bg-[#0B53F4] text-white text-[10px] font-extrabold px-3 py-2 rounded-xl shadow-xs hover:opacity-95 transition cursor-pointer"
-          >
-            Guardar Límite
-          </button>
-        </div>
-      </div>
-
-      {/* 3. MONTHLY INCOME BLUE CARD - NOW SHOWING TOTAL SUBSCRIPTIONS INCOME */}
-      <div className="bg-[#0B53F4] text-white rounded-3xl p-6 shadow-md relative overflow-hidden select-none">
-        <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-tr from-white/10 to-transparent rounded-full blur-2xl pointer-events-none" />
-        <span className="text-[10px] font-black text-[#E4ECFE] uppercase tracking-widest block font-mono font-bold">INGRESOS TOTALES POR SUSCRIPCIÓN</span>
-        <h2 className="text-3xl font-black mt-2 tracking-tight">${totalSubscriptionsRevenue.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN</h2>
-        <div className="flex items-center gap-2 mt-4 text-[11px] font-bold leading-none">
-          <span className="bg-white/15 px-2.5 py-1.5 rounded-full flex items-center gap-1">
-            📄 {invoices.length} facturas
-          </span>
-          <span className="text-blue-100/95 font-medium">de todos los usuarios, conciliadas y certificadas con éxito</span>
-        </div>
-      </div>
-
-      {/* 4. TOTAL SUBSCRIBERS AND IA EFFICIENCY - CALCULATED DYNAMICALLY FROM DB */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Total Usuarios Registrados y distribución de planes contratados */}
-        <div className="bg-white border border-slate-200/70 rounded-3xl p-5 shadow-2xs flex flex-col justify-between text-left">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block leading-none">USUARIOS REGISTRADOS</span>
-            <div className="flex items-baseline gap-2 mt-2.5 leading-none">
-              <span className="text-3xl font-black text-slate-800 font-sans">{displayUsersCount}</span>
-              <span className="text-[9.5px] font-black font-mono text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md">
-                SaaS Activo
-              </span>
-            </div>
-          </div>
-          
-          {/* Distribución de personas por tipo de plan */}
-          <div className="mt-4 pt-3.5 border-t border-slate-100 space-y-1.5 text-[11px] text-slate-500 font-medium font-sans">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                Plan Empresa ($950 MXN)
-              </span>
-              <span className="font-extrabold text-slate-800">{countEmpresa} contratados</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#0B53F4]" />
-                Plan Personal ($290 MXN)
-              </span>
-              <span className="font-extrabold text-slate-800">{countPersonal} contratados</span>
-            </div>
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <span className="auto bg-slate-300 w-2 h-2 rounded-full" />
-                Plan Gratuito ($0 MXN)
-              </span>
-              <span className="font-bold">{displayGratuito} usuarios</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Eficiencia de IA canónica */}
-        <div className="bg-white border border-slate-200/70 rounded-3xl p-5 shadow-2xs flex flex-col justify-between">
-          <div className="flex justify-between items-baseline leading-none">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">EFICIENCIA DE IA</span>
-          </div>
-          <div className="flex justify-between items-end mt-2 leading-none">
-            <span className="text-xs font-bold text-slate-500">Tasa de Éxito</span>
-            <span className="text-xs font-black text-slate-800">{automationPercentage}%</span>
-          </div>
-          <div className="w-full bg-slate-100 h-2 rounded-full mt-2.5 overflow-hidden">
-            <div className="bg-[#0B53F4] h-full rounded-full transition-all duration-500" style={{ width: `${automationPercentage}%` }} />
-          </div>
-        </div>
-      </div>
-
-      {/* 5. ACCOUNT DISTRIBUTION SPLIT PROGRESS - CHANGED TO STATUS OF REGISTERED TICKETS */}
-      <div className="bg-white border border-slate-200/70 rounded-3xl p-5 shadow-2xs">
-        <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-widest block">ESTADO DE LOS TICKETS</span>
-        
-        {/* Multi-segmented single bar */}
-        <div className="flex w-full h-2.5 rounded-full mt-3 overflow-hidden bg-slate-100 shadow-inner">
-          {totalTkts > 0 ? (
-            <>
-              {pctCompleted > 0 && <div className="bg-[#0B53F4]" style={{ width: `${pctCompleted}%` }} title={`Completados (${Math.round(pctCompleted)}%)`} />}
-              {pctPending > 0 && <div className="bg-blue-400" style={{ width: `${pctPending}%` }} title={`Pendientes (${Math.round(pctPending)}%)`} />}
-              {pctFailed > 0 && <div className="bg-rose-400" style={{ width: `${pctFailed}%` }} title={`Fallidos (${Math.round(pctFailed)}%)`} />}
-            </>
-          ) : (
-            <div className="bg-slate-200 w-full" title="Sin tickets registrados para modelar" />
-          )}
-        </div>
-
-        {/* Labels below */}
-        <div className="grid grid-cols-3 gap-2 mt-4 text-left border-t border-slate-50 pt-3">
-          <div>
-            <span className="text-[10px] text-slate-400 block font-bold">Completados</span>
-            <span className="text-sm font-extrabold text-slate-705 block mt-0.5">{countCompleted}</span>
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 block font-bold">Pendientes</span>
-            <span className="text-sm font-extrabold text-slate-705 block mt-0.5">{countPending}</span>
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 block font-bold">Fallidos</span>
-            <span className="text-sm font-extrabold text-rose-500 block mt-0.5">{countFailed}</span>
-          </div>
-        </div>
-      </div>
-      {/* SECCIÓN NUEVA: MONITOREO DE COSTOS DE FACTURACIÓN */}
-      <div className="bg-white border border-slate-200/70 rounded-3xl p-5 shadow-2xs space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-            <Zap className="w-5 h-5 stroke-[2.3]" />
-          </div>
-          <div className="text-left leading-none">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider font-mono">CÓMPUTO AUTOMATIZACIÓN IA</span>
-            <h3 className="text-base font-black text-slate-805 tracking-tight mt-1">Monitoreo de Costos Reales</h3>
-          </div>
-        </div>
-
-        {/* Cost stats breakdown */}
-        {(() => {
-          // 1. Invoices (execution) - Real cost = standard PAC automated CFDI fee ($0.25) + actual prompt/output token count (rawCost)
-          const totalInvoicesCommercial = invoices.reduce((sum, inv) => sum + (inv.cost !== undefined ? inv.cost : 2.50), 0);
-          const totalInvoicesRealApi = invoices.reduce((sum, inv) => {
-            const rawCostVal = inv.rawCost !== undefined && inv.rawCost > 0 ? inv.rawCost : 0.0016; // token fallback
-            return sum + rawCostVal + 0.25; // raw tokens + PAC fee $0.25 MXN
-          }, 0);
-          
-          // 2. Connectors (training) - Real cost = actual search grounding + reasoning tokens (rawCost)
-          const customConnectors = connectors.filter(c => c.userId !== "system" || c.learnedFrom);
-          const totalLearningCommercial = customConnectors.reduce((sum, c) => {
-            if (c.cost !== undefined) return sum + c.cost;
-            return sum + (c.learnedFrom === "portal_admin" ? 25.00 : 15.00);
-          }, 0);
-          const totalLearningRealApi = customConnectors.reduce((sum, c) => {
-            const rawCostVal = c.rawCost !== undefined && c.rawCost > 0 ? c.rawCost : ((c as any).failed ? 0.05 : 0.22);
-            return sum + rawCostVal;
-          }, 0);
-
-          // 3. Tickets (OCR) - Real cost = Gemini 3.5-flash vision engine tokens (rawCost)
-          const scannedTickets = tickets.filter(t => t.cost !== undefined || t.rawCost !== undefined);
-          const totalOcrCommercial = tickets.reduce((sum, t) => sum + (t.cost !== undefined ? t.cost : 0.50), 0);
-          const totalOcrRealApi = tickets.reduce((sum, t) => {
-            return sum + (t.rawCost !== undefined && t.rawCost > 0 ? t.rawCost : 0.0016);
-          }, 0);
-
-          // Totals
-          const grandTotalRealApiCost = totalInvoicesRealApi + totalLearningRealApi + totalOcrRealApi;
-          const grandTotalCommercialValue = totalInvoicesCommercial + totalLearningCommercial + totalOcrCommercial;
-
-          return (
-            <>
-              <div className="grid grid-cols-2 gap-4 pt-1">
-                <div className="bg-[#FAF9FF] border border-blue-100/50 p-4 rounded-2xl text-left shadow-2xs">
-                  <span className="text-[9px] font-bold text-[#0B53F4] uppercase tracking-widest block font-mono">⚡ TU GASTO REAL EN API E IA</span>
-                  <span className="text-xl font-black text-slate-800 block mt-1">
-                    ${grandTotalRealApiCost.toFixed(4)} MXN
-                  </span>
-                  <span className="text-[9px] text-slate-450 font-semibold block mt-1 leading-normal">
-                    Inversión directa en Google Cloud + PAC Facturación (Costo Neto)
-                  </span>
-                </div>
-                <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-2xl text-left">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block font-mono">VALOR COMERCIAL CON MARGEN</span>
-                  <span className="text-xl font-black text-slate-500 block mt-1">
-                    ${grandTotalCommercialValue.toFixed(2)} MXN
-                  </span>
-                  <span className="text-[9px] text-slate-450 font-semibold block mt-1 leading-normal">
-                    Tarifa de servicio sugerida al público (Margen rentable)
-                  </span>
-                </div>
-              </div>
-
-              {/* Informative explanation banner */}
-              <div className="text-[10px] text-slate-500 leading-normal bg-blue-50/50 p-3 rounded-xl border border-blue-100/40 text-left font-sans select-none">
-                <p>
-                  💡 <b>¿Por qué existe esta diferencia?</b> Como dueño de la plataforma, Google Cloud te cobra tarifas extremadamente bajas por token (Gemini API) y el PAC te cobra un costo neto de <b>$0.25 MXN</b> por timbrado. Mientras que la app consumió un valor comercial estimado de <b>${grandTotalCommercialValue.toFixed(2)} MXN</b> a precio de público, tu inversión real en infraestructura tecnológica es de solo <b>${grandTotalRealApiCost.toFixed(3)} MXN</b>. ¡Esto te otorga un gran margen de ganancia!
-                </p>
-              </div>
-
-              {/* Counter of existing vs new connectors used */}
-              <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-left">
-                <div className="leading-tight">
-                  <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-tight flex items-center gap-1 font-sans">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                    Digitalización OCR
-                  </span>
-                  <span className="text-xs font-black text-slate-700 block mt-0.5">
-                    {scannedTickets.length} scans
-                    <span className="text-[8.5px] font-semibold text-emerald-600 block font-mono">Gasto Real: ${totalOcrRealApi.toFixed(4)}</span>
-                  </span>
-                </div>
-                <div className="leading-tight">
-                  <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-tight flex items-center gap-1 font-sans">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-                    Ejecución Robótica
-                  </span>
-                  <span className="text-xs font-black text-slate-700 block mt-0.5 font-sans">
-                    {invoices.length} timbrados
-                    <span className="text-[8.5px] font-semibold text-blue-600 block font-mono">Gasto Real: ${totalInvoicesRealApi.toFixed(4)}</span>
-                  </span>
-                </div>
-                <div className="leading-tight">
-                  <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-tight flex items-center gap-1 font-sans">
-                    <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
-                    Entrenamientos IA
-                  </span>
-                  <span className="text-xs font-black text-slate-700 block mt-0.5 font-sans">
-                    {customConnectors.length} portales
-                    <span className="text-[8.5px] font-semibold text-violet-600 block font-mono">Gasto Real: ${totalLearningRealApi.toFixed(4)}</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Detailed history block with scannable layout */}
-              <div className="border-t border-slate-100 pt-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-widest block font-mono">
-                    HISTORIAL DE API &amp; OPERACIÓN
-                  </span>
-                  {/* Small tabs inside the detailed billing block */}
-                  <div className="flex bg-slate-100 p-0.5 rounded-lg text-[9px] font-bold shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setCostDetailTab("facturas")}
-                      className={`px-1.5 py-1 rounded-md transition cursor-pointer ${costDetailTab === "facturas" ? "bg-white shadow-3xs text-[#0B53F4]" : "text-slate-500 hover:text-slate-800 bg-transparent"}`}
-                    >
-                      Timbrados ({invoices.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCostDetailTab("entrenamientos")}
-                      className={`px-1.5 py-1 rounded-md transition cursor-pointer ${costDetailTab === "entrenamientos" ? "bg-white shadow-3xs text-violet-600" : "text-slate-500 hover:text-slate-800 bg-transparent"}`}
-                    >
-                      Modelos ({customConnectors.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCostDetailTab("ocr")}
-                      className={`px-1.5 py-1 rounded-md transition cursor-pointer ${costDetailTab === "ocr" ? "bg-white shadow-3xs text-emerald-600" : "text-slate-500 hover:text-slate-800 bg-transparent"}`}
-                    >
-                      OCR Scans ({scannedTickets.length})
-                    </button>
+        {/* =================================================================== */}
+        {/* 3. TICKETS SCREEN */}
+        {/* =================================================================== */}
+        {activeAdminTab === "tickets" && (
+          <div className="flex flex-col gap-4 animate-fade-in text-left">
+            
+            {/* Status overview list cards */}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { name: "Completados", count: 5, color: "text-emerald-500", bg: "bg-emerald-50", icon: <CheckCircle className="w-4 h-4" /> },
+                { name: "Pendientes", count: 0, color: "text-amber-550", bg: "bg-amber-50", icon: <ClockIcon /> },
+                { name: "Fallidos", count: 0, color: "text-rose-500", bg: "bg-rose-50", icon: <AlertTriangle className="w-4 h-4" /> }
+              ].map((s, idx) => (
+                <div key={idx} className="flex flex-col items-center p-2.5 rounded-2xl bg-white border border-slate-100 shadow-3xs">
+                  <div className={`w-8 h-8 rounded-full ${s.bg} ${s.color} flex items-center justify-center mb-1 shrink-0`}>
+                    {s.icon}
                   </div>
+                  <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-tight block">
+                    {s.name}
+                  </span>
+                  <span className="text-base font-black text-slate-800 leading-none mt-1">
+                    {s.count}
+                  </span>
                 </div>
+              ))}
+            </div>
 
-                <div className="max-h-[220px] overflow-y-auto space-y-2 pr-1 font-sans scrollbar-none text-left">
-                  {costDetailTab === "facturas" ? (
-                    invoices.length === 0 ? (
-                      <div className="text-center py-6 text-xs text-slate-400 font-semibold font-sans">No hay transacciones de facturas registradas.</div>
-                    ) : (
-                      invoices.map((inv) => {
-                        const isNew = inv.connectorType === "nuevo";
-                        const rawCostValue = inv.rawCost !== undefined && inv.rawCost > 0 ? inv.rawCost : 0.0016;
-                        const realApiCost = rawCostValue + 0.25; // PAC fee $0.25 MXN + tokens
-                        const commercialCost = inv.cost !== undefined ? inv.cost : 2.50;
-                        return (
-                          <div key={inv.id} className="bg-[#FAF9FF] border border-[#f0efff] rounded-xl p-3 flex items-center justify-between text-xs transition hover:border-[#e2e1fe] hover:bg-slate-50/60">
-                            <div className="leading-tight">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-extrabold text-slate-700">{inv.nombreEmisor}</span>
-                                <span className={`text-[8.5px] font-extrabold uppercase px-1.5 py-0.5 rounded-full border ${
-                                  isNew 
-                                    ? "bg-blue-550/10 text-[#0B53F4] border-blue-500/10" 
-                                    : "bg-emerald-500/10 text-emerald-600 border-emerald-500/10"
-                                }`}>
-                                  {isNew ? "IA / Nuevo" : "Existente"}
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-slate-405 font-mono font-semibold mt-1 block">
-                                Folio: {inv.folioFiscal.slice(0, 8)}... | ${inv.total.toFixed(2)} MXN
-                              </span>
-                              <span className="text-[8.5px] text-emerald-600 font-mono font-bold mt-0.5 block flex items-center gap-1">
-                                <span className="w-1 h-1 rounded-full bg-emerald-500" />
-                                API Tokens: ${rawCostValue.toFixed(4)} MXN | PAC CFDI: $0.2500 MXN
-                              </span>
-                            </div>
-                            <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                              <span className="font-mono font-black text-emerald-600 bg-white border border-emerald-250/20 px-2 py-0.5 rounded-lg shadow-3xs block">
-                                ${realApiCost.toFixed(4)}
-                              </span>
-                              <span className="text-[8px] text-slate-400 block font-semibold uppercase font-mono">Costo Real</span>
-                              <span className="text-[7.5px] text-slate-450 block font-medium font-mono">Sug. Pub: ${commercialCost.toFixed(2)}</span>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )
-                  ) : costDetailTab === "entrenamientos" ? (
-                    customConnectors.length === 0 ? (
-                      <div className="text-center py-6 text-xs text-slate-400 font-semibold font-sans">No hay conectores entrenados con IA todavía.</div>
-                    ) : (
-                      customConnectors.map((c) => {
-                        const isFromAdmin = c.learnedFrom === "portal_admin";
-                        const isFailed = (c as any).failed === true;
-                        const rawCostValue = c.rawCost !== undefined && c.rawCost > 0 ? c.rawCost : (isFailed ? 0.05 : 0.22);
-                        const commercialCost = c.cost !== undefined ? c.cost : (isFromAdmin ? 25.00 : 15.00);
-                        const formattedDate = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "Semilla";
-
-                        if (isFailed) {
-                          return (
-                            <div key={c.id} className="bg-rose-50/20 border border-rose-100/60 rounded-xl p-3 flex items-center justify-between text-xs transition hover:border-rose-200/50 hover:bg-rose-50/40">
-                              <div className="leading-tight">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-extrabold text-rose-800 tracking-tight">{c.nombre} (ID {c.id?.slice(0, 5)})</span>
-                                  <span className="text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border bg-rose-500/10 text-rose-600 border-rose-200">
-                                    Aprendizaje fallido
-                                  </span>
-                                </div>
-                                <span className="text-[10px] text-rose-500 font-mono font-semibold mt-1 block leading-normal">
-                                  RFC: {c.rfc} | {formattedDate}
-                                </span>
-                                <span className="text-[8.5px] text-rose-600 font-mono font-bold mt-0.5 block">
-                                  ⚠️ Fallo parcial de tokens API: ${rawCostValue.toFixed(4)} MXN
-                                </span>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <span className="font-mono font-black text-rose-700 bg-white border border-rose-250/20 px-2 py-0.5 rounded-lg shadow-3xs block">
-                                  ${rawCostValue.toFixed(4)}
-                                </span>
-                                <span className="text-[8px] text-rose-450 block mt-0.5 font-semibold uppercase font-mono">Costo Real</span>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <div key={c.id} className="bg-violet-50/20 border border-violet-100/50 rounded-xl p-3 flex items-center justify-between text-xs transition hover:border-violet-200/50 hover:bg-violet-50/40">
-                            <div className="leading-tight">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-extrabold text-slate-700">{c.nombre}</span>
-                                <span className={`text-[8.5px] font-extrabold uppercase px-1.5 py-0.5 rounded-full border ${
-                                  isFromAdmin 
-                                    ? "bg-violet-500/10 text-violet-600 border-violet-500/10" 
-                                    : "bg-blue-500/10 text-blue-600 border-blue-500/10"
-                                }`}>
-                                  {isFromAdmin ? "Generado en Admin" : "Ticket On-The-Fly"}
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-slate-450 font-mono font-semibold mt-1 block">
-                                RFC: {c.rfc} | Entrenado: {formattedDate}
-                              </span>
-                              <span className="text-[8.5px] text-indigo-600 font-mono font-bold mt-0.5 block">
-                                🧠 Cómputo Grounding + RAG: ${rawCostValue.toFixed(4)} MXN
-                              </span>
-                            </div>
-                            <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                              <span className="font-mono font-black text-indigo-600 bg-white border border-indigo-250/20 px-2 py-0.5 rounded-lg shadow-3xs block">
-                                ${rawCostValue.toFixed(4)}
-                              </span>
-                              <span className="text-[8px] text-slate-400 block font-semibold uppercase font-mono">Costo Real</span>
-                              <span className="text-[7.5px] text-slate-450 block font-medium font-mono">Sug. Pub: ${commercialCost.toFixed(2)}</span>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )
-                  ) : (
-                    scannedTickets.length === 0 ? (
-                      <div className="text-center py-6 text-xs text-slate-400 font-semibold font-sans">No hay digitalizaciones de tickets registradas.</div>
-                    ) : (
-                      scannedTickets.map((t) => {
-                        const rawCostValue = t.rawCost !== undefined && t.rawCost > 0 ? t.rawCost : 0.0016;
-                        const commercialCost = t.cost !== undefined ? t.cost : 0.50;
-                        const formattedDate = t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "Reciente";
-                        return (
-                          <div key={t.id} className="bg-emerald-50/10 border border-emerald-100/55 rounded-xl p-3 flex items-center justify-between text-xs transition hover:border-emerald-200/50 hover:bg-emerald-50/20">
-                            <div className="leading-tight">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-extrabold text-slate-700">{t.nombreEmisor || "Emisor Sin Nombre"}</span>
-                                <span className="text-[8.5px] font-extrabold uppercase px-1.5 py-0.5 rounded-full border bg-emerald-500/10 text-emerald-600 border-emerald-500/10">
-                                  OCR Vision
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-slate-450 font-mono font-semibold mt-1 block">
-                                RFC: {t.rfcEmisor || "N/A"} | Folio: {t.folio || "N/A"} | CP: {formattedDate}
-                              </span>
-                              <span className="text-[8.5px] text-emerald-600 font-mono font-bold mt-0.5 block">
-                                👁️ Gemini Vision Tokens: ${rawCostValue.toFixed(4)} MXN
-                              </span>
-                            </div>
-                            <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                              <span className="font-mono font-black text-emerald-600 bg-white border border-emerald-250/20 px-2 py-0.5 rounded-lg shadow-3xs block">
-                                ${rawCostValue.toFixed(4)}
-                              </span>
-                              <span className="text-[8px] text-slate-400 block font-semibold uppercase font-mono">Costo Real</span>
-                              <span className="text-[7.5px] text-slate-450 block font-medium font-mono">Sug. Pub: ${commercialCost.toFixed(2)}</span>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )
-                  )}
-                </div>
-              </div>
-            </>
-          );
-        })()}
-      </div>
-
-      {/* 6. APRENDER PORTAL CON IA (INTERACTIVE TRAINING BUILDER) */}
-      <div id="ai-training-builder-card" className="bg-white border border-slate-200/75 rounded-3xl p-6 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[#0B53F4]/5 rounded-full blur-2xl pointer-events-none" />
-        
-        {/* Rounded interactive floating badge matching the picture */}
-        <div className="flex gap-4 items-start pb-5">
-          <div className="w-12 h-12 rounded-full bg-[#0B53F4]/10 border border-[#0B53F4]/15 flex items-center justify-center text-[#0B53F4] shrink-0">
-            <Brain className="w-6 h-6 stroke-[2.3]" />
-          </div>
-          <div className="text-left leading-tight">
-            <h3 className="text-base font-black text-slate-9 tracking-tight">Aprender Portal con IA</h3>
-            <p className="text-xs text-slate-450 mt-1">Registra y entrena nuevas integraciones con el poder de la IA</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleLearnSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">
-              Nombre de la empresa
-            </label>
-            <input
-              type="text"
-              required
-              value={newNombre}
-              onChange={(e) => setNewNombre(e.target.value)}
-              placeholder="Costco, Starbucks, Amazon..."
-              className="w-full text-sm font-medium bg-[#F1F3FE]/70 border border-slate-200/40 hover:bg-[#F1F3FE] focus:border-[#0B53F4] focus:ring-1 focus:ring-[#0B53F4]/20 rounded-2xl px-4 py-3.5 text-slate-800 placeholder-slate-400 focus:outline-none transition-all"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">
-              RFC Emisor (Opcional)
-            </label>
-            <input
-              type="text"
-              maxLength={13}
-              value={newRfc}
-              onChange={(e) => setNewRfc(e.target.value.toUpperCase())}
-              placeholder="ABCD123456XYZ"
-              className="w-full text-sm font-mono font-bold bg-[#F1F3FE]/70 border border-slate-200/40 hover:bg-[#F1F3FE] focus:border-[#0B53F4] focus:ring-1 focus:ring-[#0B53F4]/20 rounded-2xl px-4 py-3.5 text-slate-800 placeholder-slate-400 focus:outline-none transition-all uppercase"
-            />
-          </div>
-
-          <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-3.5 flex items-start gap-2.5 transition-all text-left">
-            <input
-              type="checkbox"
-              id="tokenSaverChecked"
-              checked={tokenSaver}
-              onChange={(e) => setTokenSaver(e.target.checked)}
-              className="mt-1 w-4 h-4 rounded border-slate-300 text-[#0B53F4] focus:ring-[#0B53F4] accent-[#0B53F4]"
-            />
-            <label htmlFor="tokenSaverChecked" className="cursor-pointer text-xs select-none">
-              <span className="block font-black text-slate-700">Ahorro de Tokens (Modo ECO)</span>
-              <span className="block text-[11px] text-slate-400 mt-0.5 leading-normal">Optimiza drásticamente las consultas redundantes y restringe el uso de tokens de razonamiento pesado en la API de Gemini.</span>
-            </label>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLearningLoading}
-            className="w-full bg-[#0B53F4] hover:bg-[#0747D1] disabled:opacity-55 text-white font-black text-sm py-4 rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#0B53F4]/15 active:scale-[0.98] select-none"
-          >
-            {isLearningLoading ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin shrink-0 text-white" />
-                <span>Mapeando Selectores...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 text-white fill-white shrink-0" />
-                <span>Aprender Portal</span>
-              </>
-            )}
-          </button>
-
-          {isLearningLoading && (
-            <div className={`mt-4 border p-4.5 rounded-2xl transition-all duration-300 text-left space-y-3 ${
-              learningProgress >= 65
-                ? "bg-amber-500/10 border-amber-300 text-amber-900"
-                : "bg-blue-50/50 border-blue-100 text-[#0E1629]"
-            }`}>
-              <div className="flex justify-between items-center">
-                <span className={`text-[10px] font-black uppercase tracking-wider font-mono px-2 py-0.5 rounded-md ${
-                  learningProgress >= 65 ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-[#0B53F4]"
-                }`}>
-                  {learningProgress >= 65 ? "Complicación detectada / Optimización" : "Procesando Portal..."}
+            {/* Filter controls row */}
+            <div className="bg-white border border-slate-100 rounded-[24px] p-4 shadow-3xs space-y-3">
+              {/* Text search */}
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-3.5 w-3.5 text-slate-400" />
                 </span>
-                <span className="text-xs font-black font-mono">
-                  {learningProgress}%
-                </span>
-              </div>
-
-              {/* Progress Bar Container */}
-              <div className="w-full bg-slate-200/60 h-2 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full transition-all duration-300 ease-out ${
-                    learningProgress >= 65 ? "bg-amber-500" : "bg-[#0B53F4]"
-                  }`}
-                  style={{ width: `${learningProgress}%` }}
+                <input
+                  type="text"
+                  placeholder="Buscar tickets..."
+                  value={ticketSearch}
+                  onChange={(e) => setTicketSearch(e.target.value)}
+                  className="block w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-1 focus:ring-[#0B53F4] text-slate-805"
                 />
               </div>
 
-              {/* Company & Status Label info */}
-              <div className="text-xs space-y-1 font-sans">
-                <div className="font-extrabold text-slate-700">
-                  Portal: <span className="text-slate-900 font-black">{learningCompany || "Portal..."}</span>
+              {/* Row dropdown inputs styled exactly as mockup */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <select
+                    value={ticketStatusFilter}
+                    onChange={(e) => setTicketStatusFilter(e.target.value)}
+                    className="appearance-none block w-full px-3 py-2 text-[11px] font-extrabold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer"
+                  >
+                    <option value="todos">Todos los estados</option>
+                    <option value="completed">Completado</option>
+                    <option value="pending">Pendiente</option>
+                    <option value="failed">Fallido</option>
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-450 pointer-events-none" />
                 </div>
-                <div className="text-[11px] text-slate-450 leading-relaxed font-mono flex items-center gap-1.5">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0 text-[#0B53F4]" />
-                  <span>{learningStatus || "Inicializando analizador AI..."}</span>
-                </div>
-              </div>
 
-              {/* High-visibility complication alert text */}
-              {learningProgress >= 65 && (
-                <div className="text-[11px] bg-white/80 p-3 border border-amber-200 rounded-xl leading-relaxed text-amber-800 font-sans shadow-4xs">
-                  <span className="font-bold">⚠️ Complicaciones en el portal:</span> El emisor presenta esquemas complejos de validación o el tiempo de respuesta está demorando. Optimizando análisis con heurísticas alternativas para evitar rebasar límites de tokens.
+                <div className="relative">
+                  <select
+                    value={ticketDateFilter}
+                    onChange={(e) => setTicketDateFilter(e.target.value)}
+                    className="appearance-none block w-full px-3 py-2 text-[11px] font-extrabold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer"
+                  >
+                    <option value="todas">Todas las fechas</option>
+                    <option value="mayo">Mayo 2024</option>
+                    <option value="abril">Abril 2024</option>
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-450 pointer-events-none" />
                 </div>
-              )}
-
-              {/* Cancellation button capsule */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={onCancelLearning}
-                  className="w-full bg-white hover:bg-slate-50 border border-slate-250 text-slate-700 font-extrabold text-xs py-2.5 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98] shadow-3xs"
-                >
-                  <X className="w-4 h-4 shrink-0 text-slate-500" />
-                  <span>Cancelar Entrenamiento</span>
-                </button>
               </div>
             </div>
-          )}
-        </form>
-      </div>
 
-      {/* 7. CONNECTORS AND AI MODELS COUNT SIDE-BY-SIDE - FULLY REAL VALUES */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Connectores badge */}
-        <div 
-          onClick={() => {
-            setActiveFilter("todo");
-            toast.info("Mostrando biblioteca completa de conectores.", "Biblioteca");
-          }}
-          className="bg-[#E4ECFE]/70 border border-[#CBD9FE] rounded-3xl p-4.5 cursor-pointer hover:bg-[#E4ECFE] active:scale-95 transition-all text-left flex items-center justify-between"
-        >
-          <div>
-            <span className="text-[10px] font-bold text-[#0B53F4] uppercase tracking-wider block">CONECTORES</span>
-            <span className="text-xl font-black text-[#0B53F4] mt-1 block">{totalConnectorsCount}</span>
-          </div>
-          <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-[#0B53F4]">
-            <RefreshCw className="w-5 h-5 stroke-[2]" />
-          </div>
-        </div>
-
-        {/* Modelos IA badge */}
-        <div 
-          onClick={() => {
-            setActiveFilter("sat");
-            toast.info("Filtrando por conectores optimizados por modelos IA del SAT.", "Modelos SAT");
-          }}
-          className="bg-[#E4ECFE]/70 border border-[#CBD9FE] rounded-3xl p-4.5 cursor-pointer hover:bg-[#E4ECFE] active:scale-95 transition-all text-left flex items-center justify-between"
-        >
-          <div>
-            <span className="text-[10px] font-bold text-[#0B53F4] uppercase tracking-wider block">MODELOS IA</span>
-            <span className="text-xl font-black text-[#0B53F4] mt-1 block">{aiTrainedConnectorsCount}</span>
-          </div>
-          <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-[#0B53F4]">
-            <Brain className="w-5 h-5 stroke-[2]" />
-          </div>
-        </div>
-      </div>
-
-      {/* 8. BIBLIOTECA DE CONECTORES & CATEGORIES FILTER */}
-      <div className="space-y-4 pt-3">
-        <h3 className="text-base font-black text-slate-800 tracking-tight pl-1">Biblioteca de Conectores</h3>
-        
-        {/* Search Input Box */}
-        <div className="relative">
-          <Search className="absolute left-4.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 stroke-[2.3]" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por Nombre o RFC..."
-            className="w-full text-sm font-medium bg-white border border-slate-200/90 focus:border-[#0B53F4] focus:ring-1 focus:ring-[#0B53F4]/20 rounded-2xl pl-12 pr-5 py-3.5 text-slate-800 focus:outline-none transition-all placeholder-slate-400"
-          />
-        </div>
-
-        {/* Category Pills Slider */}
-        <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none select-none">
-          {[
-            { id: "todo", label: "Todo" },
-            { id: "activos", label: "Activos" },
-            { id: "sat", label: "SAT" },
-            { id: "portales", label: "Portales" },
-          ].map((pill) => {
-            const isActive = activeFilter === pill.id;
-            return (
-              <button
-                key={pill.id}
-                type="button"
-                onClick={() => setActiveFilter(pill.id as any)}
-                className={`px-4.5 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer whitespace-nowrap leading-none ${
-                  isActive 
-                    ? "bg-[#0B53F4] text-white shadow-xs"
-                    : "bg-[#EBF1FF]/70 hover:bg-[#EBF1FF] text-[#0B53F4]"
-                }`}
-              >
-                {pill.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 9 & 10. CONNECTOR CARDS LIBRARY (EXACTLY AS SPECIFIED IN DESIGN) */}
-      <div className="space-y-4 pt-2">
-        {filteredConnectors.length === 0 ? (
-          <div className="bg-white border border-dashed border-slate-200 p-8 rounded-3xl text-center">
-            <Info className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-xs text-slate-550 font-bold">Ningún conector coincide con los filtros especificados.</p>
-          </div>
-        ) : (
-          filteredConnectors.map((c) => {
-            // Customize connectors display elements based on current name
-            const isSAT = c.nombre.toLowerCase().includes("sat") || c.rfc === "SAT970701NN3";
-            const isLiverpool = c.nombre.toLowerCase().includes("liverpool");
-            const isWalmart = c.nombre.toLowerCase().includes("walmart");
-            const isOxxo = c.nombre.toLowerCase().includes("oxxo");
-
-            // Build dynamic representation parameters matching high fidelity designs
-            const logoBg = isSAT ? "bg-[#EBF1FF] text-[#0B53F4]" : "bg-[#F1F3FE] text-[#0B53F4]";
-            const logoIcon = isSAT ? <Landmark className="w-5.5 h-5.5 stroke-[2.2]" /> : <ShoppingCart className="w-5.5 h-5.5 stroke-[2.2]" />;
-            
-            // Custom label badges
-            let badgeText = "GLOBAL";
-            let badgeBg = "bg-emerald-550/10 text-emerald-650 border-emerald-500/10";
-            if (isLiverpool || isOxxo) {
-              badgeText = "RESTRINGIDO";
-              badgeBg = "bg-amber-550/15 text-amber-650 border-amber-500/10";
-            } else if (c.userId !== "system") {
-              badgeText = "MOCKUP IA";
-              badgeBg = "bg-blue-550/10 text-[#0B53F4] border-blue-500/10";
-            }
-
-            // Required fields array
-            let requireFieldsPills = ["RFC Emisor", "e.firma / CIEC", "Rango Fechas"];
-            if (isLiverpool) requireFieldsPills = ["Código de Venta", "Importe"];
-            else if (isWalmart) requireFieldsPills = ["RFC Receptor", "Número de Ticket", "C.P."];
-            else if (isOxxo) requireFieldsPills = ["RFC Cliente", "Folio Venta", "Fecha Compra"];
-
-            // Form element selectors map
-            let selectorMappingRows = [
-              { label: "Input RFC", code: "#txtRFC" },
-              { label: "Submit", code: ".btn-search" }
-            ];
-            if (isLiverpool) {
-              selectorMappingRows = [
-                { label: "Ticket ID", code: "#ticket_num" },
-                { label: "Total", code: "input[name='amt']" }
-              ];
-            } else if (isWalmart) {
-              selectorMappingRows = [
-                { label: "TC #", code: "input[id='tcNum']" },
-                { label: "Postal", code: "input[id='cpClient']" }
-              ];
-            }
-
-            // Steps text
-            let flowStepsLabels = ["ACCEDER", "AUTH", "FETCH", "RESULTADO"];
-            if (isLiverpool) flowStepsLabels = ["TICKET", "DATOS", "XML"];
-            else if (isWalmart) flowStepsLabels = ["TC_VAL", "CP_AUTH", "TIMBRE"];
-            else if (isOxxo) flowStepsLabels = ["INGRESO", "FOLIOS", "DESCARGA"];
-
-            const connectorId = c.id || c.nombre;
-            const isExpanded = !!expandedConnectors[connectorId];
-
-            return (
-              <div 
-                key={c.id} 
-                className="bg-white border border-slate-202 shadow-xs hover:border-slate-300 rounded-3xl p-5 space-y-4"
-              >
-                {/* Top Identity Row - Collapsible Header */}
-                <div 
-                  onClick={() => toggleExpandConnector(connectorId)}
-                  className="flex items-start justify-between cursor-pointer select-none"
+            {/* List block */}
+            <div className="bg-white border border-slate-100 rounded-[28px] p-5 shadow-sm text-left">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-[12.5px] font-black text-slate-900 tracking-tight">
+                  Lista de tickets
+                </h4>
+                <button 
+                  onClick={() => toast.info("Mostrando histórico integral de auditoría")}
+                  className="text-[10px] font-black text-[#0B53F4] uppercase tracking-tight hover:underline flex items-center"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${logoBg}`}>
-                      {logoIcon}
-                    </div>
-                    <div className="text-left leading-tight">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-black text-slate-805">{c.nombre}</span>
-                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${badgeBg}`}>
-                          {badgeText}
+                  Ver todos
+                </button>
+              </div>
+
+              {/* Core responsive table structure matching layout */}
+              <div className="flex flex-col gap-3">
+                {[
+                  { emisor: "Supermercado", folio: "F-0001234", fecha: "15 mayo 2024 • 14:32", status: "Completado", cantidad: "$1,245.50", col: "text-emerald-600 bg-emerald-50 border-emerald-100/55", logo: <Store className="w-4 h-4 text-white" /> },
+                  { emisor: "Gasolinería", folio: "F-0001233", fecha: "15 mayo 2024 • 09:18", status: "Completado", cantidad: "$800.00", col: "text-emerald-600 bg-emerald-50 border-emerald-100/55", logo: <Car className="w-4 h-4 text-white" /> },
+                  { emisor: "Restaurante", folio: "F-0001232", fecha: "14 mayo 2024 • 21:05", status: "Pendiente", cantidad: "$650.00", col: "text-amber-600 bg-amber-50 border-amber-100/55", logo: <Coffee className="w-4 h-4 text-white" /> },
+                  { emisor: "Farmacia", folio: "F-0001231", fecha: "14 mayo 2024 • 11:47", status: "Completado", cantidad: "$320.90", col: "text-emerald-600 bg-emerald-50 border-emerald-100/55", logo: <svg className="w-4 h-4 fill-current text-white" viewBox="0 0 24 24"><path d="M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z"/></svg> },
+                  { emisor: "Servicios", folio: "F-0001230", fecha: "13 mayo 2024 • 10:15", status: "Completado", cantidad: "$950.00", col: "text-emerald-600 bg-emerald-50 border-emerald-100/55", logo: <Layers className="w-4 h-4 text-white" /> }
+                ]
+                .filter(t => {
+                  const matchTxt = t.emisor.toLowerCase().includes(ticketSearch.toLowerCase());
+                  const matchSt = ticketStatusFilter === "todos" || 
+                                  (ticketStatusFilter === "completed" && t.status === "Completado") ||
+                                  (ticketStatusFilter === "pending" && t.status === "Pendiente");
+                  return matchTxt && matchSt;
+                })
+                .map((tkt, idx) => (
+                  <div 
+                    key={idx} 
+                    className="flex justify-between items-center border-b border-slate-50 pb-3 last:border-none last:pb-0 hover:bg-slate-50/50 transition duration-150 rounded-lg p-1"
+                    onClick={() => toast.success(`Abriendo inspección técnica para el folio ${tkt.folio}`)}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      {/* Sub badge category wrapper */}
+                      <div className="w-[34px] h-[34px] rounded-full bg-[#0B53F4] flex items-center justify-center shrink-0">
+                        {tkt.logo}
+                      </div>
+
+                      <div className="leading-tight">
+                        <span className="text-xs font-black text-slate-800 block uppercase">{tkt.emisor}</span>
+                        <span className="text-[9px] font-semibold text-slate-400 block mt-0.5">
+                          Folio: {tkt.folio}
+                        </span>
+                        <span className="text-[8.5px] font-bold text-slate-400 block">
+                          {tkt.fecha}
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono font-bold block mt-1 uppercase tracking-wide">
-                        📅 Generado: {c.createdAt ? new Date(c.createdAt).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" }) : "08/06/2026"}
+                    </div>
+
+                    <div className="flex flex-col items-end leading-tight shrink-0">
+                      <span className="text-xs font-mono font-black text-slate-800 tracking-tight">
+                        {tkt.cantidad}
+                      </span>
+                      <span className={`text-[8px] font-black tracking-wider px-2 py-0.5 rounded-md border mt-1 select-none leading-none ${tkt.col}`}>
+                        {tkt.status}
                       </span>
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
 
-                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <a 
-                      href={c.portalUrl} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="text-[#0B53F4] hover:underline text-xs font-bold shrink-0 flex items-center gap-1 cursor-pointer bg-transparent"
-                    >
-                      <span>Portal</span>
-                      <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.3]" />
-                    </a>
+          </div>
+        )}
 
-                    <button 
-                      type="button"
-                      onClick={() => toggleExpandConnector(connectorId)}
-                      className="text-slate-400 p-1 hover:text-slate-600 transition bg-transparent border-none outline-none"
-                    >
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-                    </button>
+        {/* =================================================================== */}
+        {/* 4. COSTOS SCREEN */}
+        {/* =================================================================== */}
+        {activeAdminTab === "costos" && (
+          <div className="flex flex-col gap-4 animate-fade-in text-left">
+            
+            {/* Real costs summary row indicators */}
+            <div className="bg-white border border-slate-100 rounded-[28px] p-5 shadow-sm text-left">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-4">
+                Monitoreo de costos reales
+              </span>
+
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-50">
+                  <div className="leading-none">
+                    <span className="text-[9px] font-black text-[#0B53F4] uppercase tracking-widest block font-mono">
+                      Gasto real en API e IA
+                    </span>
+                    <span className="text-[19px] font-black text-slate-800 mt-2 block tracking-tight">
+                      $3,740.60 <span className="text-[10px] text-slate-400 font-bold">MXN</span>
+                    </span>
+                  </div>
+
+                  <div className="leading-none pl-3 border-l border-slate-100">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block font-mono">
+                      Valor comercial con margen
+                    </span>
+                    <span className="text-[19px] font-black text-slate-500 mt-2 block tracking-tight">
+                      $158.00 <span className="text-[10px] text-slate-400 font-bold">MXN</span>
+                    </span>
                   </div>
                 </div>
 
-                {/* Subcontainer Background Panel (visible only when expanded) */}
-                {isExpanded && (
-                  <div className="bg-[#FAF9FF] border border-slate-100 rounded-2xl p-4.5 space-y-4 animate-in fade-in slide-in-from-top-1 duration-150">
-                    {/* RFC emisor profile detail */}
-                    <div className="text-left">
-                      <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
-                        RFC EMISOR DEL PORTAL
-                      </span>
-                      <span className="inline-block mt-1 px-2.5 py-1 text-[10px] font-bold font-mono bg-white border border-slate-200 text-slate-700 rounded-lg shadow-4xs">
-                        {c.rfc || "N/A"}
-                      </span>
+                <div className="flex justify-between items-center leading-none">
+                  <span className="text-[10px] font-bold text-slate-400 block tracking-tight">
+                    Margen estimado
+                  </span>
+                  <span className="bg-emerald-50 text-[#22C55E] border border-emerald-100 text-xs font-black px-3 py-1 rounded-full font-mono">
+                    97.63%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Cost by service progress items */}
+            <div className="bg-white border border-slate-100 rounded-[28px] p-5 shadow-sm text-left">
+              <h4 className="text-[12.5px] font-black text-slate-900 tracking-tight mb-4">
+                Costos por servicio
+              </h4>
+
+              <div className="flex flex-col gap-4">
+                {[
+                  { name: "Google Cloud (API)", amount: "$1,812.00 MXN", percentage: "48.5%", progress: 48.5, barColor: "bg-[#0b53f4]" },
+                  { name: "Gemini (IA)", amount: "$1,362.10 MXN", percentage: "36.4%", progress: 36.4, barColor: "bg-[#3B82F6]" },
+                  { name: "PAC (Timbrado)", amount: "$0,568.00 MXN", percentage: "15.1%", progress: 15.1, barColor: "bg-teal-500" }
+                ].map((s, idx) => (
+                  <div key={idx} className="space-y-1.5 leading-none">
+                    <div className="flex justify-between items-baseline text-[11px]">
+                      <span className="font-extrabold text-slate-800">{s.name}</span>
+                      <span className="font-extrabold text-slate-800 text-right">{s.amount} <span className="text-[9.5px] font-mono text-slate-400">({s.percentage})</span></span>
                     </div>
 
-                    {/* Fields lists */}
-                    <div className="space-y-1 text-left">
-                      <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
-                        CAMPOS REQUERIDOS
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden w-full relative">
+                      <div className={`h-full ${s.barColor} rounded-full`} style={{ width: s.percentage }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Budget limit control slider bar container */}
+            <div className="bg-white border border-slate-100 rounded-[28px] p-5 shadow-sm text-left space-y-4">
+              <div className="flex justify-between items-start leading-none">
+                <div>
+                  <span className="text-[10px] font-black text-[#0B53F4] uppercase tracking-widest block font-mono">
+                    Control presupuestal
+                  </span>
+                  <h3 className="text-xs font-black text-slate-900 tracking-tight mt-1.5 leading-none">
+                    Límite mensual de gastos en API e IA
+                  </h3>
+                </div>
+                
+                <span className="bg-[#0B53F4]/5 text-[#0B53F4] text-xs font-black px-2.5 py-1.5 rounded-full font-mono shrink-0">
+                  ${tempBudgetLimit.toFixed(2)} MXN
+                </span>
+              </div>
+
+              {/* Dynamic slider */}
+              <div className="space-y-2">
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  step="0.5"
+                  value={tempBudgetLimit}
+                  onChange={(e) => setTempBudgetLimit(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#0B53F4]"
+                />
+                
+                <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 font-bold">
+                  <span>$1.00</span>
+                  <span>$50.00</span>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-slate-400 font-medium leading-normal select-none">
+                Define el límite diario de gastos para controlar el presupuesto.
+              </p>
+
+              {/* Submit limit saving action button */}
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await onUpdateLearningBudgetLimit(tempBudgetLimit);
+                    toast.success(`Límite diario establecido en: $${tempBudgetLimit.toFixed(2)} MXN`);
+                  } catch (err) {
+                    toast.error("No se pudo actualizar el límite presupuestario.");
+                  }
+                }}
+                className="w-full bg-[#0B53F4] text-white text-xs font-black py-3 rounded-xl hover:opacity-95 transition cursor-pointer select-none border-none text-center block"
+              >
+                Guardar límite
+              </button>
+            </div>
+
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 5. CONECTORES SCREEN */}
+        {/* =================================================================== */}
+        {activeAdminTab === "conectores" && (
+          <div className="flex flex-col gap-4 animate-fade-in text-left">
+            
+            {/* Headers card values */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center justify-between shadow-3xs">
+                <div>
+                  <span className="text-[20px] font-black text-[#0B53F4] leading-none">15</span>
+                  <span className="text-[10px] font-bold text-slate-400 block mt-1">Conectores</span>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-[#0B53F4]">
+                  <Server className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center justify-between shadow-3xs">
+                <div>
+                  <span className="text-[20px] font-black text-[#0B53F4] leading-none">12</span>
+                  <span className="text-[10px] font-bold text-slate-400 block mt-1">Modelos IA</span>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
+                  <Cpu className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+
+            {/* Filter inputs and Search control */}
+            <div className="bg-white border border-slate-100 rounded-[24px] p-4 shadow-3xs space-y-3">
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-3.5 w-3.5 text-slate-300" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Buscar conector o empresa..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="block w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white text-slate-805 focus:ring-1 focus:ring-[#0B53F4]"
+                />
+              </div>
+
+              {/* Horizontal sliding categories pills row */}
+              <div className="flex gap-1 overflow-x-auto no-scrollbar py-1">
+                {[
+                  { id: "todo", name: "Todos" },
+                  { id: "activos", name: "Activos" },
+                  { id: "sat", name: "SAT" },
+                  { id: "portales", name: "Portal" },
+                  { id: "ia", name: "IA" },
+                  { id: "errores", name: "Errores" }
+                ].map((pill) => (
+                  <button
+                    key={pill.id}
+                    onClick={() => {
+                      setActiveFilter(pill.id as any);
+                      toast.success(`Filtro: ${pill.name}`);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-[9.5px] font-black shrink-0 transition cursor-pointer select-none ${
+                      activeFilter === pill.id
+                        ? "bg-[#0b53f4] text-white"
+                        : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                    }`}
+                  >
+                    {pill.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* List block */}
+            <div className="flex flex-col gap-3.5">
+              
+              {/* Element 1: FOXO (Expanded list on load exactly matching layout) */}
+              <div className="bg-white border border-slate-150 rounded-[28px] p-4.5 shadow-sm text-left">
+                <div 
+                  className="flex justify-between items-center cursor-pointer select-none"
+                  onClick={() => toggleExpandConnector("foxo")}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-[34px] h-[34px] rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <svg className="w-5.5 h-5.5 text-[#0B53F4] fill-current" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                      </svg>
+                    </div>
+
+                    <div className="leading-tight text-left">
+                      <span className="text-xs font-black text-slate-800 block uppercase">
+                        Fomento Económico Mexicano (FOXO)
                       </span>
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {requireFieldsPills.map((p, index) => (
-                          <span 
-                            key={index} 
-                            className="px-2.5 py-1 text-[10px] font-bold bg-white border border-slate-200/50 text-slate-605 rounded-lg shadow-3xs"
-                          >
-                            {p}
-                          </span>
-                        ))}
+                      <div className="flex gap-1.5 mt-0.5 items-center">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[9px] font-bold text-slate-400">Activo</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9.5px] font-black text-[#0B53F4] bg-[#0B53F4]/10 rounded-full px-2 py-0.5 select-none leading-none">
+                      Portal
+                    </span>
+                    <ChevronDown className={`w-4.5 h-4.5 text-slate-400 transition-all ${expandedConnectors["foxo"] ? 'rotate-180': ''}`} />
+                  </div>
+                </div>
+
+                {expandedConnectors["foxo"] && (
+                  <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col gap-4 animate-slide-down">
+                    {/* Collapsed grid specifications */}
+                    <div className="grid grid-cols-3 gap-2 text-left text-[11px] font-sans">
+                      <div>
+                        <span className="text-[9px] text-slate-400 block font-bold leading-none">Campos requeridos</span>
+                        <span className="text-[12px] font-black text-slate-800 mt-1 block">6 de 10</span>
+                      </div>
+                      <div className="pl-2 border-l border-slate-100">
+                        <span className="text-[9px] text-slate-400 block font-bold leading-none">Tasa de éxito</span>
+                        <span className="text-[12px] font-black text-[#22C55E] mt-1 block font-mono">100%</span>
+                      </div>
+                      <div className="pl-2 border-l border-slate-100">
+                        <span className="text-[9px] text-slate-400 block font-bold leading-none">Tickets procesados</span>
+                        <span className="text-[12px] font-black text-slate-800 mt-1 block">24</span>
                       </div>
                     </div>
 
-                    {/* Mapping Grid */}
-                    <div className="space-y-1 text-left pt-1">
-                      <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
-                        MAPEO DE FORMULARIOS
-                      </span>
-                      <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 pt-1.5">
-                        {selectorMappingRows.map((row, index) => (
-                          <div key={index} className="flex items-center gap-1 text-[10px] font-bold font-mono">
-                            <span className="text-slate-450 font-sans">{row.label}</span>
-                            <span className="text-[#0B53F4] bg-[#EBF1FF]/60 border border-[#EBF1FF] px-1.5 py-0.5 rounded-lg">
-                              {row.code}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Flow Steps Progress Indicator */}
-                    <div className="space-y-1 text-left pt-1">
-                      <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
-                        FLUJO GUÍA AUTOMÁTICO
-                      </span>
-                      
-                      {/* Stepper Grid Container */}
-                      <div className="relative mt-3 px-1">
-                        {/* Connection Line */}
-                        <div className="absolute top-4 left-4 right-4 h-0.5 bg-slate-200/80 -z-0" />
-                        
-                        <div className="flex items-center justify-between relative z-10">
-                          {flowStepsLabels.map((stLabel, idx) => (
-                            <div key={idx} className="flex flex-col items-center">
-                              <div className="w-8 h-8 rounded-full bg-[#0B53F4] text-white flex items-center justify-center font-black text-xs border-[3px] border-white shadow-xs">
-                                {idx + 1}
-                              </div>
-                              <span className="text-[8px] font-black text-slate-450 uppercase tracking-wider block mt-1.5 font-mono">
-                                {stLabel}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                    {/* Blue actions grid bar */}
+                    <div className="grid grid-cols-3 gap-1.5 pt-1">
+                      <button 
+                        onClick={() => toast.success("Soliitando prueba de extracción inmediata en FOXO...")}
+                        className="bg-slate-100 hover:bg-slate-150 text-slate-700 text-[10px] font-black py-2 rounded-xl transition cursor-pointer text-center block"
+                      >
+                        ▶ Probar
+                      </button>
+                      <button 
+                        onClick={() => toast.success("Abriendo asigndor de selectores de portal FOXO")}
+                        className="bg-slate-100 hover:bg-slate-150 text-slate-700 text-[10px] font-black py-2 rounded-xl transition cursor-pointer text-center block"
+                      >
+                        📝 Editar
+                      </button>
+                      <button 
+                        onClick={() => toast.success("Re-entrenando modelo cognitivo para FOXO...")}
+                        className="bg-[#0b53f4]/10 hover:bg-[#0b53f4]/15 text-[#0B53F4] text-[10px] font-black py-2 rounded-xl transition cursor-pointer text-center block"
+                      >
+                        ⚙ Reentrenar IA
+                      </button>
                     </div>
                   </div>
                 )}
               </div>
-            );
-          })
-        )}
-      </div>
 
-      {/* 11. LOGS DE ENTRENAMIENTO EN TIEMPO REAL */}
-      <div className="space-y-3 pt-3">
-        <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider font-mono pl-1">
-          LOGS DE ENTRENAMIENTO EN TIEMPO REAL
-        </h3>
+              {/* Element 2: Cinépolis */}
+              <div className="bg-white border border-slate-100 rounded-[28px] p-4.5 shadow-3xs text-left">
+                <div 
+                  className="flex justify-between items-center cursor-pointer select-none"
+                  onClick={() => toggleExpandConnector("cinepolis")}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-[34px] h-[34px] rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <svg className="w-5.5 h-5.5 text-[#0B53F4] fill-current" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                      </svg>
+                    </div>
 
-        {/* Real Console Design exactly matching layout */}
-        <div className="bg-[#0D1527] border border-[#1E293B] rounded-3xl p-5 shadow-lg relative overflow-hidden select-text text-left">
-          
-          {/* Top logs header block */}
-          <div className="flex items-center justify-between border-b border-white/5 pb-3">
-            <span className="text-[10px] font-black text-white/90 uppercase tracking-widest font-mono flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shrink-0" />
-              💻 IA ENGINE STATUS
-            </span>
-            <button 
-              onClick={() => toast.info("Guías técnicas de integración, selectores y Playwright en docs.zenticket.mx", "Soporte Técnico")}
-              className="text-[#38BDF8] hover:underline text-[10px] font-bold font-mono tracking-wider flex items-center gap-1.5 cursor-pointer bg-transparent"
-            >
-              <span>🌐 Docs</span>
-            </button>
-          </div>
+                    <div className="leading-tight text-left">
+                      <span className="text-xs font-black text-slate-800 block uppercase">
+                        Cinépolis
+                      </span>
+                      <div className="flex gap-1.5 mt-0.5 items-center">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[9px] font-bold text-slate-400">Activo</span>
+                      </div>
+                    </div>
+                  </div>
 
-          {/* Core Logs Code Body - DYNAMICALLY POPULATED FROM DATABASE INTEGRATIONS */}
-          <div className="font-mono text-[10.5px] text-[#38BDF8] py-4 space-y-2 min-h-[160px] max-h-[220px] overflow-y-auto leading-relaxed select-text scrollbar-none antialiased">
-            {getDynamicLogs().map((log, index) => (
-              <div key={index} className="text-white/45 font-semibold flex gap-2">
-                <span>[{log.time}]</span> 
-                <span className={`${log.tagColor} uppercase`}>{log.tag}:</span> 
-                <span className="text-slate-200">{log.text}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9.5px] font-black text-[#0B53F4] bg-[#0B53F4]/10 rounded-full px-2 py-0.5 select-none leading-none">
+                      Portal
+                    </span>
+                    <ChevronDown className={`w-4.5 h-4.5 text-slate-400 transition-all ${expandedConnectors["cinepolis"] ? 'rotate-180': ''}`} />
+                  </div>
+                </div>
+
+                {expandedConnectors["cinepolis"] && (
+                  <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col gap-4 animate-slide-down">
+                    <div className="grid grid-cols-3 gap-2 text-left text-[11px] font-sans">
+                      <div>
+                        <span className="text-[9px] text-slate-400 block font-bold leading-none">Campos requeridos</span>
+                        <span className="text-[12px] font-black text-slate-800 mt-1 block">6 de 10</span>
+                      </div>
+                      <div className="pl-2 border-l border-slate-100">
+                        <span className="text-[9px] text-slate-400 block font-bold leading-none">Tasa de éxito</span>
+                        <span className="text-[12px] font-black text-[#22C55E] mt-1 block font-mono">100%</span>
+                      </div>
+                      <div className="pl-2 border-l border-slate-100">
+                        <span className="text-[9px] text-slate-400 block font-bold leading-none">Tickets procesados</span>
+                        <span className="text-[12px] font-black text-slate-800 mt-1 block">18</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-1.5 pt-1">
+                      <button 
+                        onClick={() => toast.success("Soliitando prueba de extracción para Cinépolis...")}
+                        className="bg-slate-100 hover:bg-slate-150 text-slate-700 text-[10px] font-black py-2 rounded-xl transition cursor-pointer text-center block"
+                      >
+                        ▶ Probar
+                      </button>
+                      <button 
+                        onClick={() => toast.success("Abriendo editor de conector Cinépolis")}
+                        className="bg-slate-100 hover:bg-slate-150 text-slate-700 text-[10px] font-black py-2 rounded-xl transition cursor-pointer text-center block"
+                      >
+                        📝 Editar
+                      </button>
+                      <button 
+                        onClick={() => toast.success("Iniciando re-aprendizaje heurístico Cinépolis...")}
+                        className="bg-[#0b53f4]/10 hover:bg-[#0b53f4]/15 text-[#0B53F4] text-[10px] font-black py-2 rounded-xl transition cursor-pointer text-center block"
+                      >
+                        ⚙ Reentrenar IA
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
 
-          {/* Simulated Controls Row matching screenshot capsules footer */}
-          <div className="flex flex-wrap gap-2 pt-3 border-t border-white/5 justify-between">
-            <button 
-              type="button"
-              onClick={() => {
-                setLogsTime(new Date().toLocaleTimeString());
-                toast.success("Consola del Playwright Worker depurada correctamente.", "Consola Limpia");
-              }}
-              className="px-3.5 py-2 text-[9.5px] font-black font-semibold uppercase tracking-wider text-[#94A3B8] hover:text-white bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 rounded-xl cursor-pointer transition select-none"
-            >
-              Depurar Selectores
-            </button>
-            <button 
-              type="button"
-              onClick={() => toast.info("Guía de entrenamiento AI generada. Analizando puertos activos de Node.", "Manual AI")}
-              className="px-3.5 py-2 text-[9.5px] font-black font-semibold uppercase tracking-wider text-[#94A3B8] hover:text-white bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 rounded-xl cursor-pointer transition select-none"
-            >
-              Guía de Entrenamiento
-            </button>
-            <button 
-              type="button"
-              onClick={() => toast.info(JSON.stringify(connectors[0] || {}, null, 2), "Mapeador JSON de Pruebas")}
-              className="px-3 py-2 text-[9.5px] font-black font-semibold uppercase tracking-wider text-[#94A3B8] hover:text-white bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 rounded-xl cursor-pointer transition select-none font-mono"
-            >
-              Ver JSON
-            </button>
+              {/* Element 3: Nueva Walmart de México */}
+              <div className="bg-white border border-slate-100 rounded-[28px] p-4.5 shadow-3xs text-left">
+                <div 
+                  className="flex justify-between items-center cursor-pointer select-none"
+                  onClick={() => toggleExpandConnector("walmart")}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-[34px] h-[34px] rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <svg className="w-5.5 h-5.5 text-[#0B53F4] fill-current" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                      </svg>
+                    </div>
+
+                    <div className="leading-tight text-left">
+                      <span className="text-xs font-black text-slate-800 block uppercase">
+                        Nueva Walmart de México
+                      </span>
+                      <div className="flex gap-1.5 mt-0.5 items-center">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span className="text-[9px] font-bold text-slate-400">Advertencia</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9.5px] font-black text-[#0B53F4] bg-[#0B53F4]/10 rounded-full px-2 py-0.5 select-none leading-none">
+                      Portal
+                    </span>
+                    <ChevronDown className={`w-4.5 h-4.5 text-slate-400 transition-all ${expandedConnectors["walmart"] ? 'rotate-180': ''}`} />
+                  </div>
+                </div>
+
+                {expandedConnectors["walmart"] && (
+                  <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col gap-4 animate-slide-down">
+                    <div className="grid grid-cols-3 gap-2 text-left text-[11px] font-sans">
+                      <div>
+                        <span className="text-[9px] text-slate-400 block font-bold leading-none">Campos requeridos</span>
+                        <span className="text-[12px] font-black text-slate-800 mt-1 block">5 de 10</span>
+                      </div>
+                      <div className="pl-2 border-l border-slate-100">
+                        <span className="text-[9px] text-slate-400 block font-bold leading-none">Tasa de éxito</span>
+                        <span className="text-[12px] font-black text-amber-500 mt-1 block font-mono">82.4%</span>
+                      </div>
+                      <div className="pl-2 border-l border-slate-100">
+                        <span className="text-[9px] text-slate-400 block font-bold leading-none">Tickets procesados</span>
+                        <span className="text-[12px] font-black text-slate-800 mt-1 block">56</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-1.5 pt-1">
+                      <button 
+                        onClick={() => toast.success("Soliitando prueba de extracción en Walmart...")}
+                        className="bg-slate-100 hover:bg-slate-150 text-slate-700 text-[10px] font-black py-2 rounded-xl transition cursor-pointer text-center block"
+                      >
+                        ▶ Probar
+                      </button>
+                      <button 
+                        onClick={() => toast.success("Abriendo editor de Walmart")}
+                        className="bg-slate-100 hover:bg-slate-150 text-slate-700 text-[10px] font-black py-2 rounded-xl transition cursor-pointer text-center block"
+                      >
+                        📝 Editar
+                      </button>
+                      <button 
+                        onClick={() => toast.success("Habilitando rastreador heurístico para Walmart...")}
+                        className="bg-[#0b53f4]/10 hover:bg-[#0b53f4]/15 text-[#0B53F4] text-[10px] font-black py-2 rounded-xl transition cursor-pointer text-center block"
+                      >
+                        ⚙ Reentrenar IA
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
           </div>
-        </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 6. APRENDER PORTAL SCREEN */}
+        {/* =================================================================== */}
+        {activeAdminTab === "aprender" && (
+          <div className="flex flex-col gap-4 animate-fade-in text-left">
+            
+            {/* starry / glossy starry AI Banner */}
+            <div className="bg-[#0A3EE4] text-white rounded-[28px] p-5 shadow-sm text-left relative overflow-hidden">
+              <div className="absolute right-[-10px] bottom-[-20px] w-36 h-36 bg-gradient-to-tr from-white/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+              
+              <div className="flex gap-3 items-center">
+                <div className="w-[38px] h-[38px] rounded-xl bg-white/15 border border-white/10 flex items-center justify-center text-white shrink-0">
+                  <Sparkles className="w-4.5 h-4.5 animate-pulse" />
+                </div>
+
+                <div className="leading-tight text-left">
+                  <h3 className="text-sm font-black text-white tracking-tight leading-none">
+                    Aprender Portal con IA
+                  </h3>
+                  <p className="text-[9.5px] text-blue-100 font-medium leading-normal mt-1.5">
+                    La IA aprenderá a extraer tickets desde cualquier portal automáticamente.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Learn Portal input Form */}
+            <form onSubmit={handleLearnSubmit} className="bg-white border border-slate-100 rounded-[28px] p-5 shadow-sm text-left gap-4 flex flex-col">
+              
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">
+                  Nombre de la empresa
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej. Costco, Starbucks, Amazon..."
+                  value={newNombre}
+                  onChange={(e) => setNewNombre(e.target.value)}
+                  className="block w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white text-slate-805 focus:ring-1 focus:ring-[#0B53F4]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">
+                  RFC de emisión (opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej. XAXX010101000"
+                  value={newRfc}
+                  onChange={(e) => setNewRfc(e.target.value)}
+                  className="block w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white text-slate-805 focus:ring-1 focus:ring-[#0B53F4] font-mono"
+                  maxLength={13}
+                />
+              </div>
+
+              {/* Toggle switch row for TokenSaver / ECO Mode */}
+              <div className="flex items-center justify-between pt-1 border-t border-slate-50 mt-1 pb-1">
+                <div className="text-left leading-tight pr-4">
+                  <span className="text-[10.5px] font-black text-slate-800 tracking-tight flex items-center gap-1">
+                    Ahorro de Tokens — Modo ECO
+                    <span className="text-[8px] bg-emerald-50 text-emerald-600 border border-emerald-100 font-black px-1 rounded-sm leading-none ml-1 shrink-0 uppercase select-none">
+                      🌱 ECO
+                    </span>
+                  </span>
+                  <span className="text-[9.5px] font-medium text-slate-400 mt-1 block leading-normal">
+                    Optimiza el consumo de tokens para reducir costos.
+                  </span>
+                </div>
+
+                {/* Styled Switch toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTokenSaver(!tokenSaver);
+                    toast.success(tokenSaver ? "Modo ECO Desactivado" : "Modo ECO Activado: Ahorro de Tokens del 60%");
+                  }}
+                  className={`relative inline-flex h-5.5 w-10.5 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out select-none ${
+                    tokenSaver ? "bg-emerald-550 bg-emerald-500" : "bg-slate-200"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                      tokenSaver ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Submit Action button with sparkly loader indicator */}
+              <button
+                type="submit"
+                className="w-full bg-[#0B53F4] text-white text-xs font-black py-3 rounded-xl hover:opacity-95 transition shadow-sm cursor-pointer border-none flex items-center justify-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5 shrink-0 fill-current" />
+                <span>Aprender Portal</span>
+              </button>
+            </form>
+
+            {/* Steps timeline "Proceso de aprendizaje" */}
+            <div className="bg-white border border-slate-100 rounded-[28px] p-5 shadow-sm text-left">
+              <h4 className="text-[12.5px] font-black text-slate-900 tracking-tight mb-4">
+                Proceso de aprendizaje
+              </h4>
+
+              <div className="flex flex-col gap-3.5 pl-1.5">
+                {[
+                  { step: 1, text: "Explorar portal y detectar acceso" },
+                  { step: 2, text: "Analizar estructura y extraer campos" },
+                  { step: 3, text: "Identificar campos requeridos" },
+                  { step: 4, text: "Simular llenado con datos de prueba" },
+                  { step: 5, text: "Guardar modelo de extracción" },
+                  { step: 6, text: "Probar extracción con ticket real" },
+                  { step: 7, text: "Publicar conector y activar" }
+                ].map((s, idx) => (
+                  <div key={idx} className="flex items-center gap-3 relative">
+                    {/* Tiny connector line */}
+                    {idx < 6 && (
+                      <div className="absolute left-[9px] top-6 w-0.5 h-4.5 bg-slate-100" />
+                    )}
+
+                    <span className="w-5 h-5 rounded-full bg-[#0B53F4]/10 text-[#0B53F4] flex items-center justify-center text-[10px] font-black tracking-tighter shrink-0 select-none font-mono">
+                      {s.step}
+                    </span>
+
+                    <span className="text-[11px] font-bold text-slate-700">
+                      {s.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        )}
+
       </div>
-
-      {/* 12. BOTTOM RED DE EXTRACCIÓN HARDWARE STATUS CARD CARD */}
-      <div className="bg-[#FAF9FF] border border-slate-200/60 rounded-3xl p-5 flex items-center justify-between shadow-2xs select-none">
-        <div className="flex items-center gap-3.5">
-          {/* Green-colored server icon block */}
-          <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
-            <Database className="w-5.5 h-5.5 stroke-[2.2]" />
-          </div>
-          <div className="text-left leading-tight">
-            <span className="text-sm font-black text-slate-800 block">Red de Extracción</span>
-            <span className="text-[10px] text-slate-400 block mt-1 font-semibold font-mono">Latencia Media: 120ms</span>
-          </div>
-        </div>
-
-        <div className="text-right leading-tight">
-          <span className="text-sm font-black text-[#0B53F4] block font-mono">12.5k req/s</span>
-          <span className="text-[9px] text-[#0B53F4]/70 block mt-1 font-black uppercase tracking-wider font-mono">MXN Localization</span>
-        </div>
       </div>
-
     </div>
   );
 }
+
+// --------------------------- EXTRA SMALL COMPONENT CODES ---------------------------
+const ClockIcon = () => (
+  <svg className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9"/>
+    <polyline points="12 7 12 12 15 15"/>
+  </svg>
+);

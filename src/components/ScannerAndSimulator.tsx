@@ -2,11 +2,14 @@ import React, { useState, useRef, useEffect } from "react";
 import { FiscalProfile, Ticket, Connector, ExtractedTicketData } from "../types";
 import { SAMPLE_TICKETS, drawMockTicketToDataUrl } from "../utils/ticket-drawer";
 import Logo from "./Logo";
+import fondoPleca2 from "@/Fondo pleca 2.png";
+import hoja3d2 from "@/Hoja3d_2.png";
 import { 
-  Upload, Loader2, Play, Terminal, AlertTriangle, CheckCircle, 
+  Upload, Loader2, Play, Terminal, AlertTriangle, CheckCircle, Bell, 
   RefreshCw, Sparkles, Cpu, Eye, Building2, Calendar, FileText, Clock,
   Camera, ShoppingBag, Fuel, Utensils
 } from "lucide-react";
+import { useToast } from "./Toast";
 
 interface ScannerAndSimulatorProps {
   fiscalProfile: FiscalProfile | null;
@@ -19,6 +22,10 @@ interface ScannerAndSimulatorProps {
   preselectedTicketId: string | null;
   onClearPreselectedTicket: () => void;
   onStartAutomation?: (ticketId: string) => Promise<void>;
+  onTabChange?: (tab: string) => void;
+  onSetNewlyAddedTicketId?: (id: string | null) => void;
+  autoOpenCamera?: boolean;
+  onCloseCamera?: () => void;
 }
 
 export default function ScannerAndSimulator({
@@ -32,7 +39,12 @@ export default function ScannerAndSimulator({
   preselectedTicketId,
   onClearPreselectedTicket,
   onStartAutomation,
+  onTabChange,
+  onSetNewlyAddedTicketId,
+  autoOpenCamera,
+  onCloseCamera,
 }: ScannerAndSimulatorProps) {
+  const toast = useToast();
   // Navigation & Loading States
   const [ticketImage, setTicketImage] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState<"upload" | "extracted" | "automating" | "success">("upload");
@@ -77,6 +89,48 @@ export default function ScannerAndSimulator({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (autoOpenCamera && fileInputRef.current) {
+      fileInputRef.current.setAttribute("capture", "environment");
+      fileInputRef.current.click();
+      if (onCloseCamera) {
+        onCloseCamera();
+      }
+    }
+  }, [autoOpenCamera, onCloseCamera]);
+
+  // Helper for ultra-robust connector matching and deduplication
+  const matchConnector = (tEmisorName: string, tEmisorRfc: string): Connector | null => {
+    const cleanStr = (s: string) => 
+      (s || "")
+       .toLowerCase()
+       .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove accents
+       .replace(/[^a-z0-9\s]/g, "") // remove punctuation
+       .replace(/\b(sa|de|cv|sapi|srl|de|cv|grupo|comercial|cadena|tiendas|sucursal|santa|fe|magna|pemex)\b/g, "")
+       .trim();
+
+    const tRfc = (tEmisorRfc || "").toLowerCase().trim();
+    const tNombre = cleanStr(tEmisorName || "");
+
+    const found = connectors.find((c) => {
+      const cRfc = (c.rfc || "").toLowerCase().trim();
+      if (tRfc && cRfc && tRfc === cRfc) return true;
+
+      const cNombre = cleanStr(c.nombre || "");
+      if (!tNombre || !cNombre) return false;
+
+      // Check if one contains the other
+      if (tNombre.includes(cNombre) || cNombre.includes(tNombre)) return true;
+
+      // Token word-matching: check if they share a significant word
+      const tWords = tNombre.split(/\s+/).filter(w => w.length > 2);
+      const cWords = cNombre.split(/\s+/).filter(w => w.length > 2);
+      return tWords.some(w => cWords.includes(w));
+    });
+
+    return found || null;
+  };
+
   // Preload a ticket if triggered from tickets screen
   useEffect(() => {
     if (!preselectedTicketId) return;
@@ -105,13 +159,8 @@ export default function ScannerAndSimulator({
       setEditTotal(data.total || 0);
       setIsEditing(checkIsDataIncomplete(data));
 
-      const found = connectors.find(
-        (c) =>
-          c.rfc.toLowerCase().trim() === ticket.rfcEmisor.toLowerCase().trim() ||
-          ticket.nombreEmisor.toLowerCase().includes(c.nombre.toLowerCase()) ||
-          c.nombre.toLowerCase().includes(ticket.nombreEmisor.toLowerCase())
-      );
-      setMatchingConnector(found || null);
+      const found = matchConnector(ticket.nombreEmisor, ticket.rfcEmisor);
+      setMatchingConnector(found);
       setActiveStep("extracted");
     }
 
@@ -190,6 +239,11 @@ export default function ScannerAndSimulator({
       // Seek matching connector
       findMatchingConnector(ocrResult);
       setActiveStep("extracted");
+
+      if (onTabChange && onSetNewlyAddedTicketId) {
+        onSetNewlyAddedTicketId(tId);
+        onTabChange("tickets");
+      }
     } catch (err: any) {
       console.error(err);
       setMessage(err.message || "Error al procesar ticket con IA OCR.");
@@ -202,14 +256,8 @@ export default function ScannerAndSimulator({
 
   // Seek matching connector in rules DB
   const findMatchingConnector = (data: ExtractedTicketData) => {
-    // Attempt standard exact-match of RFC, or fuzzy match name
-    const found = connectors.find(
-      (c) =>
-        c.rfc.toLowerCase().trim() === data.rfcEmisor.toLowerCase().trim() ||
-        data.nombreEmisor.toLowerCase().includes(c.nombre.toLowerCase()) ||
-        c.nombre.toLowerCase().includes(data.nombreEmisor.toLowerCase())
-    );
-    setMatchingConnector(found || null);
+    const found = matchConnector(data.nombreEmisor, data.rfcEmisor);
+    setMatchingConnector(found);
     setIsConnectorNewlyLearned(false);
   };
 
@@ -286,6 +334,11 @@ export default function ScannerAndSimulator({
         // Find match
         findMatchingConnector(ocrResult);
         setActiveStep("extracted");
+
+        if (onTabChange && onSetNewlyAddedTicketId) {
+          onSetNewlyAddedTicketId(tId);
+          onTabChange("tickets");
+        }
       } catch (err: any) {
         console.error(err);
         setMessage(err.message || "No se pudo interpretar el ticket ingresado.");
@@ -421,6 +474,13 @@ export default function ScannerAndSimulator({
       await addLog(`🎉 ¡Procesamiento completado con éxito!`, 200);
 
       setSimulationProgress(100);
+
+      // Redirect immediately to tickets tab and trigger the highlight
+      if (onTabChange && onSetNewlyAddedTicketId) {
+        onSetNewlyAddedTicketId(ticketId);
+        onTabChange("tickets");
+      }
+
       setTimeout(() => {
         setActiveStep("success");
       }, 1000);
@@ -523,51 +583,137 @@ export default function ScannerAndSimulator({
     setActiveStep("upload");
   };
 
+  const completedCount = tickets.filter(t => t.status === "completed").length;
+  const pendingCount = tickets.filter(t => t.status !== "completed").length;
+
+  let screenTitle = "Escanear ticket";
+  let screenSubtitle = "Sube tu ticket de compra para autofacturar";
+  if (activeStep !== "upload") {
+    screenTitle = "Confirmar datos";
+    screenSubtitle = "Revisa la información extraída por la IA";
+  }
+
   return (
-    <div className="bg-transparent min-h-[500px] flex flex-col relative overflow-hidden select-none gap-6">
+    <div className="w-full flex flex-col font-sans select-none text-left bg-[#F4F7FC] min-h-screen animate-fade-in_50">
       
-      {/* 1. Progresivas líneas indicadores en la parte superior */}
-      {activeStep === "upload" && (
-        <div className="w-full flex gap-1.5 mb-2 relative z-10">
-          <div className="h-1.5 bg-[#0B53F4] rounded-full flex-[2.5]" />
-          <div className="h-1.5 bg-[#FFB200] rounded-full flex-[1]" />
-        </div>
-      )}
+      {/* ==================== 1. DEEP ROYAL BLUE HEADER STATUS BLOCK ==================== */}
+      <div className="bg-gradient-to-b from-[#0B3EE4] via-[#05229C] to-[#01144F] text-white pt-10 pb-24 px-5 rounded-b-[40px] shadow-lg relative overflow-hidden shrink-0">
+        <div className="absolute right-[-20%] top-[-20%] w-60 h-60 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
+        <div className="absolute left-[-20%] bottom-[-20%] w-48 h-48 rounded-full bg-teal-400/10 blur-2xl pointer-events-none" />
 
-      {/* 2. ZenTicket Brand Header with Logo Box and Notification Bell */}
-      {activeStep === "upload" && (
-        <div className="flex items-center justify-between relative z-10 bg-white border border-slate-200/60 py-2.5 px-4.5 rounded-2xl shadow-sm">
-          <Logo size="sm" />
+        {/* Top Header Navbar: Avatar, Logo & Bell */}
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          {/* User Profile Avatar */}
+          <div className="w-[38px] h-[38px] rounded-full overflow-hidden border border-white/20 bg-white/10 shrink-0 shadow-inner">
+            <img 
+              src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=256&auto=format&fit=crop" 
+              alt="Profile" 
+              className="w-full h-full object-cover"
+            />
+          </div>
 
-          {/* Golden active bell icon */}
-          <div className="relative p-2 rounded-full border border-slate-200 bg-slate-50 cursor-pointer text-slate-550 hover:text-slate-800 transition shadow-sm">
-            <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          {/* Centered ZenTicket Logo */}
+          <div className="flex items-center gap-1.5 justify-center">
+            {/* Elegant Triple Leaf Lotus Vector resembling ZenTicket brand icon */}
+            <svg viewBox="0 0 100 100" className="w-[22px] h-[22px] text-white fill-current">
+              <path d="M50 20C42 35 48 58 50 64C52 58 58 35 50 20Z" opacity="0.9" />
+              <path d="M46 64C41 58 26 48 15 50C28 55 42 58 46 64Z" opacity="0.75" />
+              <path d="M54 64C59 58 74 48 85 50C72 55 58 58 54 64Z" opacity="0.75" />
             </svg>
-            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-[#FFB200] rounded-full border-2 border-white" />
-          </div>
-        </div>
-      )}
-
-      {/* Standard Step header for active editing actions */}
-      {activeStep !== "upload" && (
-        <div className="bg-white border border-slate-200/60 p-5 rounded-2xl shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4 relative z-10">
-          <div>
-            <h2 className="text-base font-black text-slate-900 flex items-center gap-2 select-none uppercase tracking-wide">
-              <Sparkles className="w-5.5 h-5.5 text-[#FFB200]" />
-              Procesamiento de Ticket con IA
-            </h2>
+            <span className="text-[17.5px] font-black tracking-tight text-white select-none font-sans">
+              ZenTicket
+            </span>
           </div>
 
-          <button
-            onClick={resetAll}
-            className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 text-[#0B53F4] hover:text-[#0B53F4]/90 bg-[#0B53F4]/10 border border-[#0B53F4]/20 px-5 py-2.5 rounded-xl transition cursor-pointer font-sans"
+          {/* Right Action: Notification bell translucent badge */}
+          <button 
+            type="button"
+            onClick={() => toast.info("No tienes alertas del SAT sin revisar.", "Estado sincronizado")}
+            className="w-[38px] h-[38px] rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center border border-white/10 transition cursor-pointer relative border-0"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Capturar Siguiente
+            <Bell className="w-4 h-4 text-white" />
+            <span className="absolute top-[10px] right-[10px] w-2 h-2 bg-[#0B53F4] rounded-full ring-2 ring-[#031D79]" />
           </button>
         </div>
-      )}
+
+        {/* Personalized Greetings heading styling */}
+        <div className="mb-6 relative z-10 text-left">
+          <h2 className="text-[25px] font-black tracking-tight text-white leading-none">
+            {screenTitle}
+          </h2>
+          <span className="text-[11.5px] text-blue-100 font-bold block mt-1 tracking-tight select-none opacity-85">
+            {screenSubtitle}
+          </span>
+        </div>
+
+        {/* Stats horizontal side-by-side block matching mockup */}
+        <div className="flex justify-between items-center bg-white/[0.03] backdrop-filter border border-white/5 rounded-2xl p-4.5 mb-1.5 relative z-10">
+          
+          {/* Left item: tickets procesados */}
+          <div className="flex items-center gap-3.5 w-[50%]">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+              <CheckCircle className="w-5 h-5 text-blue-200" />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[23px] font-black block leading-none text-white tracking-tight">
+                {completedCount}
+              </span>
+              <span className="text-[10px] text-blue-100 font-bold block mt-1 tracking-tight">
+                tickets procesados
+              </span>
+            </div>
+          </div>
+
+          {/* Horizontal dividing thin line */}
+          <div className="w-px h-10 bg-white/10 shrink-0 self-center" />
+
+          {/* Right item: por facturar */}
+          <div className="flex items-center gap-3.5 w-[50%] pl-4.5">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+              <Clock className="w-5 h-5 text-blue-200" />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[23px] font-black block leading-none text-white tracking-tight">
+                {pendingCount}
+              </span>
+              <span className="text-[10px] text-blue-100 font-bold block mt-1 tracking-tight">
+                en seguimiento
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ==================== 2. MAIN ACTIVE STEPS SECTION WRAPPER ==================== */}
+      <div className="-mt-14 px-4 pb-20 relative z-20 w-full max-w-7xl mx-auto flex flex-col gap-6">
+        
+        {/* Progresivas líneas indicadores en la parte superior del módulo */}
+        {activeStep === "upload" && (
+          <div className="w-full flex gap-1.5 mb-1 relative z-10">
+            <div className="h-1.5 bg-[#0B53F4] rounded-full flex-[2.5]" />
+            <div className="h-1.5 bg-[#FFB200] rounded-full flex-[1]" />
+          </div>
+        )}
+
+        {activeStep !== "upload" && (
+          <div className="bg-white border border-slate-200/60 p-5 rounded-2xl shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4 relative z-10">
+            <div>
+              <h2 className="text-base font-black text-slate-900 flex items-center gap-2 select-none uppercase tracking-wide">
+                <Sparkles className="w-5.5 h-5.5 text-[#FFB200]" />
+                Procesamiento de Ticket con IA
+              </h2>
+            </div>
+
+            <button
+              onClick={resetAll}
+              className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 text-[#0B53F4] hover:text-[#0B53F4]/90 bg-[#0B53F4]/10 border border-[#0B53F4]/20 px-5 py-2.5 rounded-xl transition cursor-pointer font-sans"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Capturar Siguiente
+            </button>
+          </div>
+        )}
 
       {message && (
         <div className="p-4 rounded-2xl bg-rose-50 border border-rose-150 text-rose-700 text-xs flex items-start gap-2.5 max-w-4xl relative z-10 shadow-sm">
@@ -590,8 +736,19 @@ export default function ScannerAndSimulator({
             </div>
           ) : (
             <>
-              {/* 1. General Status / Activity Summary Blue Card (Exact screenshot style) */}
-              <div id="general-status-card" className="bg-gradient-to-tr from-[#0546F0] to-[#1268FF] text-white rounded-3xl p-6 shadow-lg relative overflow-hidden select-none">
+               {/* 1. General Status / Activity Summary Blue Card (Exact screenshot style) */}
+              <div 
+                id="general-status-card" 
+                className="text-white rounded-3xl p-6 shadow-xl relative overflow-hidden select-none bg-cover bg-center bg-no-repeat transition-all duration-300"
+                style={{ backgroundImage: `url(${fondoPleca2})`, backgroundColor: '#0546F0' }}
+              >
+                {/* Floating 3D Leaf */}
+                <img 
+                  src={hoja3d2} 
+                  alt="Hoja 3D" 
+                  className="absolute right-[-10px] bottom-[-10px] w-16 h-16 pointer-events-none select-none z-10 opacity-90"
+                  style={{ transform: "rotate(-25deg)" }}
+                />
                 {/* Sparkle top right decorator */}
                 <div className="absolute top-5 right-5 opacity-90">
                   <Sparkles className="w-9 h-9 text-white animate-pulse" />
@@ -1185,6 +1342,7 @@ export default function ScannerAndSimulator({
                     if (ticketId && onStartAutomation) {
                       onStartAutomation(ticketId);
                     }
+                    handleTriggerAutomation();
                   }}
                   disabled={!fiscalProfile || !extractedData || checkIsDataIncomplete(extractedData)}
                   className="sm:shrink-0 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 text-white bg-[#0B53F4] hover:bg-blue-600 px-5.5 py-3.5 rounded-xl transition shadow-md shadow-[#0B53F4]/10 active:scale-[0.98] disabled:opacity-50 select-none relative z-10 cursor-pointer text-center"
@@ -1295,6 +1453,7 @@ export default function ScannerAndSimulator({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

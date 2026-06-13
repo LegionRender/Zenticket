@@ -2,7 +2,7 @@ import React from "react";
 import { Invoice } from "../types";
 import { 
   TrendingUp, PieChart, ShoppingBag, 
-  Utensils, Car, Home, Plus, Info, FileText
+  Utensils, Car, Home, Plus, Info, FileText, Bell, Database, Sparkles
 } from "lucide-react";
 import { useToast } from "./Toast";
 
@@ -116,33 +116,115 @@ export default function VaultScreen({ invoices, onTabChange }: VaultScreenProps)
   const maxMonthTotal = Math.max(...monthlyAggregates.map(m => m.total), 1);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 font-sans text-left mt-2 relative select-none pb-24">
-      {/* 1. HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Bóveda Digital</h1>
-          <p className="text-xs text-slate-400 mt-1">Monitorea la acumulación de tus facturas SAT y distribución de gastos corporativos.</p>
+    <div className="w-full flex flex-col font-sans select-none text-left bg-[#F4F7FC] min-h-screen animate-fade-in_50">
+      
+      {/* ==================== 1. DEEP ROYAL BLUE HEADER STATUS BLOCK ==================== */}
+      <div className="bg-gradient-to-b from-[#0B3EE4] via-[#05229C] to-[#01144F] text-white pt-10 pb-24 px-5 rounded-b-[40px] shadow-lg relative overflow-hidden shrink-0">
+        <div className="absolute right-[-20%] top-[-20%] w-60 h-60 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
+        <div className="absolute left-[-20%] bottom-[-20%] w-48 h-48 rounded-full bg-teal-400/10 blur-2xl pointer-events-none" />
+
+        {/* Top Header Navbar: Avatar, Logo & Bell */}
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          {/* User Profile Avatar */}
+          <div className="w-[38px] h-[38px] rounded-full overflow-hidden border border-white/20 bg-white/10 shrink-0 shadow-inner">
+            <img 
+              src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=256&auto=format&fit=crop" 
+              alt="Profile" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Centered ZenTicket Logo */}
+          <div className="flex items-center gap-1.5 justify-center">
+            {/* Elegant Triple Leaf Lotus Vector resembling ZenTicket brand icon */}
+            <svg viewBox="0 0 100 100" className="w-[22px] h-[22px] text-white fill-current">
+              <path d="M50 20C42 35 48 58 50 64C52 58 58 35 50 20Z" opacity="0.9" />
+              <path d="M46 64C41 58 26 48 15 50C28 55 42 58 46 64Z" opacity="0.75" />
+              <path d="M54 64C59 58 74 48 85 50C72 55 58 58 54 64Z" opacity="0.75" />
+            </svg>
+            <span className="text-[17.5px] font-black tracking-tight text-white select-none font-sans">
+              ZenTicket
+            </span>
+          </div>
+
+          {/* Right Action: Notification bell translucent badge */}
+          <button 
+            type="button"
+            onClick={() => toast.info("No tienes alertas del SAT sin revisar.", "Estado sincronizado")}
+            className="w-[38px] h-[38px] rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center border border-white/10 transition cursor-pointer relative border-0"
+          >
+            <Bell className="w-4 h-4 text-white" />
+            <span className="absolute top-[10px] right-[10px] w-2 h-2 bg-[#0B53F4] rounded-full ring-2 ring-[#031D79]" />
+          </button>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200">
-            Último Mes: <strong className="text-[#0B53F4]">{months[currentMonthIdx]}</strong>
+
+        {/* Personalized Greetings heading styling */}
+        <div className="mb-6 relative z-10 text-left">
+          <h2 className="text-[25px] font-black tracking-tight text-white leading-none">
+            Bóveda CFDI
+          </h2>
+          <span className="text-[11.5px] text-blue-100 font-bold block mt-1 tracking-tight select-none opacity-85">
+            Monitorea la acumulación de tus facturas SAT y gastos corporativos
           </span>
+         <span className="inline-block bg-blue-500/20 text-blue-100 text-[9.5px] font-bold px-2 py-0.5 rounded-full mt-2 select-none border border-blue-400/10">
+           Mes activo: <strong className="text-white font-black uppercase text-[10px]">{months[currentMonthIdx]}</strong>
+         </span>
+        </div>
+
+        {/* Stats horizontal side-by-side block matching mockup */}
+        <div className="flex justify-between items-center bg-white/[0.03] backdrop-filter border border-white/5 rounded-2xl p-4.5 mb-1.5 relative z-10">
+          
+          {/* Left item: real total spent */}
+          <div className="flex items-center gap-3.5 w-[50%]">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+              <TrendingUp className="w-5 h-5 text-blue-200" />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[21px] font-black block leading-none text-white tracking-tight">
+                ${formatCurrency(realTotalSpent)}
+              </span>
+              <span className="text-[10px] text-blue-100 font-bold block mt-1 tracking-tight">
+                MXN acumulados
+              </span>
+            </div>
+          </div>
+
+          {/* Horizontal dividing thin line */}
+          <div className="w-px h-10 bg-white/10 shrink-0 self-center" />
+
+          {/* Right item: real transaction count */}
+          <div className="flex items-center gap-3.5 w-[50%] pl-4.5">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+              <Database className="w-5 h-5 text-blue-200" />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[23px] font-black block leading-none text-white tracking-tight font-mono">
+                {realTransactionsCount}
+              </span>
+              <span className="text-[10px] text-blue-100 font-bold block mt-1 tracking-tight">
+                facturas sat listadas
+              </span>
+            </div>
+          </div>
+
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* ==================== 2. MAIN ACTIVE CARD SECTION WRAPPER ==================== */}
+      <div className="-mt-14 px-4 pb-20 relative z-20 w-full max-w-7xl mx-auto flex flex-col gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* LEFT COLUMN - STATS & CHART (lg:col-span-7) */}
         <div className="lg:col-span-7 space-y-6">
           
           {/* TOTAL GASTOS CARD */}
-          <div className="bg-[#0B53F4] text-white rounded-3xl p-6 shadow-md relative overflow-hidden select-none">
+          <div className="zt-btn-primary hover:transform-none hover:shadow-[0_12px_30px_rgba(37,99,255,0.35)] text-white rounded-3xl p-6 shadow-md relative overflow-hidden select-none">
             {/* Subtle white circle back accent */}
             <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-tr from-white/10 to-transparent rounded-full blur-2xl pointer-events-none" />
             
             {/* Top title and month selection label */}
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-blue-200 uppercase tracking-widest block font-sans">
+            <div className="flex items-center justify-between font-display">
+              <span className="text-[10px] font-black text-blue-150 uppercase tracking-widest block">
                 TOTAL GASTOS REALES (MES)
               </span>
               <span className="bg-white/15 backdrop-blur-md text-[10.5px] font-bold text-white px-3.5 py-1 rounded-full leading-none">
@@ -151,9 +233,9 @@ export default function VaultScreen({ invoices, onTabChange }: VaultScreenProps)
             </div>
 
             {/* Large cash indicator */}
-            <div className="flex items-baseline mt-4 leading-none font-sans">
-              <span className="text-2xl font-black text-blue-200 mr-1.5">$</span>
-              <span className="text-4xl font-extrabold tracking-tight">
+            <div className="flex items-baseline mt-4 leading-none select-none">
+              <span className="text-2xl font-black text-blue-200 mr-1.5 font-display">$</span>
+              <span className="text-4xl font-extrabold tracking-tight font-display">
                 {formatCurrency(realTotalSpent)}
               </span>
             </div>
@@ -172,8 +254,8 @@ export default function VaultScreen({ invoices, onTabChange }: VaultScreenProps)
           {/* EVOLUCIÓN HISTORIC MINI-CHART CARD */}
           <div className="bg-white border border-slate-200/50 rounded-3xl p-5.5 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-slate-800 tracking-tight font-sans">Evolución de Gastos</h3>
-              <span className="text-xs font-black text-[#0B53F4] font-sans">
+              <h3 className="font-display font-extrabold text-[17px] text-slate-800 tracking-tight">Evolución de Gastos</h3>
+              <span className="text-xs font-black text-[#0B53F4] font-display">
                 {months[currentMonthIdx]}: ${realTotalSpent.toFixed(2)}
               </span>
             </div>
@@ -208,7 +290,7 @@ export default function VaultScreen({ invoices, onTabChange }: VaultScreenProps)
           {/* ÚLTIMOS GASTOS REALES */}
           <div className="space-y-4">
             <div className="flex items-center justify-between pt-2 px-0.5">
-              <h2 className="text-lg font-extrabold text-slate-800 tracking-tight font-sans">Últimos Gastos Reales</h2>
+              <h2 className="font-display font-extrabold text-lg text-slate-850 tracking-tight">Últimos Gastos Reales</h2>
               <button
                 type="button"
                 onClick={() => {
@@ -273,7 +355,7 @@ export default function VaultScreen({ invoices, onTabChange }: VaultScreenProps)
           {/* DISTRIBUCIÓN PROGRESS INDICATORS CARD */}
           <div className="bg-white border border-slate-200/50 rounded-3xl p-5.5 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
             <div className="flex items-center justify-between pb-3.5">
-              <h3 className="text-base font-black text-slate-800 tracking-tight font-sans">Distribución por Categorías</h3>
+              <h3 className="font-display font-extrabold text-base text-slate-800 tracking-tight">Distribución por Categorías</h3>
               <PieChart className="w-4.5 h-4.5 text-slate-400 stroke-[2.3]" />
             </div>
 
@@ -332,7 +414,7 @@ export default function VaultScreen({ invoices, onTabChange }: VaultScreenProps)
           {/* DESGLOSE POR CATEGORÍA */}
           <div className="space-y-4">
             <div className="text-left pt-2">
-              <h2 className="text-lg font-extrabold text-slate-800 tracking-tight font-sans">Desglose por Categoría</h2>
+              <h2 className="font-display font-extrabold text-lg text-slate-800 tracking-tight">Desglose por Categoría</h2>
             </div>
 
             {/* 2X2 CATEGORIES GRID CAPSULES */}
@@ -410,6 +492,7 @@ export default function VaultScreen({ invoices, onTabChange }: VaultScreenProps)
           <Plus className="w-6.5 h-6.5 stroke-[3] text-white" />
         </button>
       )}
+      </div>
     </div>
   );
 }

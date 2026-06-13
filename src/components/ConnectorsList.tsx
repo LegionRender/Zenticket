@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import { Connector, ConnectorField } from "../types";
 import { 
   Link2, Search, Cpu, CheckCircle, Database, HelpCircle, Loader2, X, 
-  Layers, Coffee, Utensils, Car, Home, ShoppingBag, ArrowRight, ChevronDown
+  Layers, Coffee, Utensils, Car, Home, ShoppingBag, ArrowRight, ChevronDown,
+  Bell, Clock
 } from "lucide-react";
+import { useToast } from "./Toast";
 import { AnimatePresence, motion } from "motion/react";
 
 interface ConnectorsListProps {
@@ -90,6 +92,7 @@ const getCategoryStyles = (category: string) => {
 };
 
 export default function ConnectorsList({ connectors, onLearnConnector, isLoading }: ConnectorsListProps) {
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [newNombre, setNewNombre] = useState("");
   const [newRfc, setNewRfc] = useState("");
@@ -190,23 +193,116 @@ export default function ConnectorsList({ connectors, onLearnConnector, isLoading
   });
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans text-left relative">
+    <div className="w-full flex flex-col font-sans select-none text-left bg-[#F4F7FC] min-h-screen animate-fade-in_50">
+      
+      {/* ==================== 1. DEEP ROYAL BLUE HEADER STATUS BLOCK ==================== */}
+      <div className="bg-gradient-to-b from-[#0B3EE4] via-[#05229C] to-[#01144F] text-white pt-10 pb-24 px-5 rounded-b-[40px] shadow-lg relative overflow-hidden shrink-0">
+        <div className="absolute right-[-20%] top-[-20%] w-60 h-60 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
+        <div className="absolute left-[-20%] bottom-[-20%] w-48 h-48 rounded-full bg-teal-400/10 blur-2xl pointer-events-none" />
+
+        {/* Top Header Navbar: Avatar, Logo & Bell */}
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          {/* User Profile Avatar */}
+          <div className="w-[38px] h-[38px] rounded-full overflow-hidden border border-white/20 bg-white/10 shrink-0 shadow-inner">
+            <img 
+              src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=256&auto=format&fit=crop" 
+              alt="Profile" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Centered ZenTicket Logo */}
+          <div className="flex items-center gap-1.5 justify-center">
+            {/* Elegant Triple Leaf Lotus Vector resembling ZenTicket brand icon */}
+            <svg viewBox="0 0 100 100" className="w-[22px] h-[22px] text-white fill-current">
+              <path d="M50 20C42 35 48 58 50 64C52 58 58 35 50 20Z" opacity="0.9" />
+              <path d="M46 64C41 58 26 48 15 50C28 55 42 58 46 64Z" opacity="0.75" />
+              <path d="M54 64C59 58 74 48 85 50C72 55 58 58 54 64Z" opacity="0.75" />
+            </svg>
+            <span className="text-[17.5px] font-black tracking-tight text-white select-none font-sans">
+              ZenTicket
+            </span>
+          </div>
+
+          {/* Right Action: Notification bell translucent badge */}
+          <button 
+            type="button"
+            onClick={() => toast.info("No tienes alertas del SAT sin revisar.", "Estado sincronizado")}
+            className="w-[38px] h-[38px] rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center border border-white/10 transition cursor-pointer relative border-0"
+          >
+            <Bell className="w-4 h-4 text-white" />
+            <span className="absolute top-[10px] right-[10px] w-2 h-2 bg-[#0B53F4] rounded-full ring-2 ring-[#031D79]" />
+          </button>
+        </div>
+
+        {/* Personalized Greetings heading styling */}
+        <div className="mb-6 relative z-10 text-left">
+          <h2 className="text-[25px] font-black tracking-tight text-white leading-none">
+            Portales SAT
+          </h2>
+          <span className="text-[11.5px] text-blue-100 font-bold block mt-1 tracking-tight select-none opacity-85">
+            Biblioteca de conectores y aprendizaje de portales
+          </span>
+        </div>
+
+        {/* Stats horizontal side-by-side block matching mockup */}
+        <div className="flex justify-between items-center bg-white/[0.03] backdrop-filter border border-white/5 rounded-2xl p-4.5 mb-1.5 relative z-10">
+          
+          {/* Left item: tickets procesados */}
+          <div className="flex items-center gap-3.5 w-[50%]">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+              <Database className="w-5 h-5 text-blue-200" />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[23px] font-black block leading-none text-white tracking-tight font-sans">
+                {connectors.length}
+              </span>
+              <span className="text-[10px] text-blue-100 font-bold block mt-1 tracking-tight">
+                conectores activos
+              </span>
+            </div>
+          </div>
+
+          {/* Horizontal dividing thin line */}
+          <div className="w-px h-10 bg-white/10 shrink-0 self-center" />
+
+          {/* Right item: por facturar */}
+          <div className="flex items-center gap-3.5 w-[50%] pl-4.5">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+              <Cpu className="w-5 h-5 text-blue-200" />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-[13.5px] font-bold block leading-none text-white tracking-tight">
+                AUTO-CONCILIABLE
+              </span>
+              <span className="text-[10px] text-blue-100 font-bold block mt-1 tracking-tight leading-relaxed">
+                con Aprendizaje IA
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ==================== 2. MAIN ACTIVE CARD SECTION WRAPPER ==================== */}
+      <div className="-mt-14 px-4 pb-20 relative z-20 w-full max-w-7xl mx-auto flex flex-col gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-body text-left relative">
       
       {/* LEFT: Search & Add Learning Form */}
-      <div className="lg:col-span-1 bg-white border border-slate-200/50 rounded-3xl p-6 shadow-[0_4px_20px_rgba(15,23,42,0.02)] h-fit relative overflow-hidden">
+      <div className="lg:col-span-1 bg-white border border-slate-200/40 rounded-3xl p-6 shadow-sm h-fit relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-[#0B53F4]/5 rounded-full blur-2xl pointer-events-none" />
         
-        <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
-          <Cpu className="w-5 h-5 text-[#FFB200] shrink-0" />
+        <h3 className="font-display font-extrabold text-base text-slate-900 tracking-tight mb-2 flex items-center gap-2">
+          <Cpu className="w-5 h-5 text-[#0B53F4] shrink-0" />
           Aprender Portal con IA
         </h3>
-        <p className="text-xs text-slate-455 mb-5 leading-relaxed">
+        <p className="text-xs text-slate-500 mb-5 leading-relaxed font-medium">
           Si el emisor del ticket no tiene un conector activo, buscaremos el portal de facturación en Google y propondremos reglas de automatización.
         </p>
 
         <form onSubmit={handleLearnSubmit} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-mono">
+            <label className="block text-[10px] font-black text-blue-600/70 uppercase tracking-widest mb-1.5 font-display">
               Nombre de la Empresa / Tienda
             </label>
             <input
@@ -215,12 +311,12 @@ export default function ConnectorsList({ connectors, onLearnConnector, isLoading
               value={newNombre}
               onChange={(e) => setNewNombre(e.target.value)}
               placeholder="e.g. Costco México, Uber, Starbucks"
-              className="w-full text-xs bg-slate-50 border border-slate-205 focus:border-[#0B53F4] hover:bg-slate-50/80 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none transition-all font-sans"
+              className="w-full text-xs bg-slate-50 border border-slate-200 focus:border-[#0B53F4] hover:bg-slate-50/80 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none transition-all font-body"
             />
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-mono">
+            <label className="block text-[10px] font-black text-blue-600/70 uppercase tracking-widest mb-1.5 font-display">
               RFC Emisor (Opcional)
             </label>
             <input
@@ -229,14 +325,14 @@ export default function ConnectorsList({ connectors, onLearnConnector, isLoading
               value={newRfc}
               onChange={(e) => setNewRfc(e.target.value.toUpperCase())}
               placeholder="e.g. CCO8605231N4"
-              className="w-full text-xs font-mono bg-slate-50 border border-slate-205 focus:border-[#0B53F4] hover:bg-slate-50/80 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none transition-all uppercase"
+              className="w-full text-xs font-mono bg-slate-50 border border-slate-200 focus:border-[#0B53F4] hover:bg-slate-50/80 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none transition-all uppercase"
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider bg-[#0B53F4] hover:bg-blue-600 text-white py-3.5 px-4 rounded-xl transition shadow-md shadow-[#0B53F4]/10 active:scale-[0.98] disabled:opacity-55 cursor-pointer leading-none"
+            className="w-full flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider zt-btn-primary hover:transform-none text-white py-3.5 px-4 rounded-full transition shadow-md shadow-[#0B53F4]/15 active:scale-[0.98] disabled:opacity-55 cursor-pointer leading-none"
           >
             {isLoading ? (
               <>
@@ -267,28 +363,28 @@ export default function ConnectorsList({ connectors, onLearnConnector, isLoading
       </div>
 
       {/* RIGHT: Connectors Directory Preview (Max 3) */}
-      <div className="lg:col-span-2 bg-white border border-slate-200/50 rounded-3xl p-6 shadow-[0_4px_20px_rgba(15,23,42,0.02)] flex flex-col justify-between relative overflow-hidden min-h-[480px]">
+      <div className="lg:col-span-2 bg-white border border-slate-200/40 rounded-3xl p-6 shadow-sm flex flex-col justify-between relative overflow-hidden min-h-[480px]">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#0B53F4]/5 rounded-full blur-2xl pointer-events-none" />
 
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-5 relative z-10">
           <div>
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <Database className="w-5 h-5 text-[#FFB200] shrink-0" />
+            <h3 className="font-display font-extrabold text-[#0b1020] text-base flex items-center gap-2">
+              <Database className="w-5 h-5 text-[#0B53F4] shrink-0" />
               Biblioteca de Conectores ({connectors.length})
             </h3>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1 font-medium">
               Ordenados automáticamente por categoría de consumo.
             </p>
           </div>
 
-          <div className="relative shrink-0 w-full sm:w-auto">
-            <Search className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
+          <div className="relative shrink-0 w-full sm:w-auto font-body">
+            <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar conector..."
-              className="text-xs text-slate-800 bg-slate-50 border border-slate-205 focus:border-[#0B53F4] hover:bg-slate-50/80 rounded-xl pl-9 pr-4 py-3 w-full sm:w-52 focus:outline-none transition-all font-sans"
+              className="text-xs text-slate-800 bg-slate-50 border border-slate-200 focus:border-[#0B53F4] hover:bg-slate-50/80 rounded-xl pl-9 pr-4 py-3 w-full sm:w-52 focus:outline-none transition-all"
             />
           </div>
         </div>
@@ -426,6 +522,8 @@ export default function ConnectorsList({ connectors, onLearnConnector, isLoading
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
+      </div>
+      </div>
       </div>
 
       {/* IMMERSIVE SLIDE-OVER OR POPUP DIALOG MODAL (NOT ON MAIN SCREEN) */}
@@ -654,7 +752,6 @@ export default function ConnectorsList({ connectors, onLearnConnector, isLoading
           </div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }

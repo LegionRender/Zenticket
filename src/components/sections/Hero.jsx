@@ -30,29 +30,29 @@ const Hero = ({ onCtaClick }) => {
         }}
       />
 
-      <div className="relative max-w-[1240px] mx-auto px-6 lg:px-8 pt-36 pb-28 lg:pt-44 lg:pb-32">
-        <div className="grid lg:grid-cols-12 gap-10 items-center">
+      <div className="relative max-w-[1240px] mx-auto px-6 lg:px-8 pt-24 pb-8 sm:pb-12 lg:pt-44 lg:pb-32">
+        <div className="grid lg:grid-cols-12 gap-6 lg:gap-10 items-center">
           {/* Left content */}
           <div className="lg:col-span-7">
             <div
               data-testid={TID.hero.badge}
-              className="zt-chip inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px] text-white/85"
+              className="zt-chip inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px] text-white/85 select-none"
             >
               <Sparkles size={14} className="text-[#7aa5ff]" />
               <span>Inteligencia Artificial que trabaja por ti</span>
             </div>
 
-            <h1 className="font-display font-extrabold mt-7 text-[44px] sm:text-[56px] lg:text-[68px] leading-[1.02] tracking-[-0.025em]">
-              Convierte tus
-              <br /> tickets en facturas.
-              <br />
+            <h1 className="font-display font-extrabold mt-5 text-[36px] sm:text-[56px] lg:text-[68px] leading-[1.05] tracking-[-0.025em] text-white">
+              Convierte tus{" "}
+              <br className="hidden sm:inline" /> tickets en facturas.{" "}
+              <br className="hidden sm:inline" />
               <span className="zt-grad-text">Sin estrés.</span>
             </h1>
 
-            <p className="mt-7 text-[15px] sm:text-[16px] leading-7 text-white/70 max-w-[560px]">
+            <p className="mt-5 text-[15px] sm:text-[16px] leading-7 text-white/70 max-w-[560px]">
               Toma una foto. ZenTicket encuentra el portal correcto,
-              completa tus datos y genera tu factura automáticamente.
-              <br />
+              completa tus datos y genera tu factura automáticamente.{" "}
+              <br className="hidden sm:inline" />
               Tú sigue con tu día, nosotros hacemos el resto.
             </p>
 
@@ -120,7 +120,7 @@ const Hero = ({ onCtaClick }) => {
                 aria-hidden
               />
             </div>
-            <div className="relative z-10">
+            <div className="relative z-10 scale-[0.7] sm:scale-100 my-[-80px] sm:my-0 origin-center transition-transform">
               <PhoneMock />
             </div>
           </div>

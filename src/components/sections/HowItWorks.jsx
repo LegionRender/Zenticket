@@ -7,28 +7,28 @@ const steps = [
     n: "01",
     icon: Camera,
     title: "Escanea tu ticket",
-    desc: "Toma una foto o sube\nuna captura desde tu\ncelular.",
+    desc: "Toma una foto o sube una captura desde tu celular.",
     color: "from-sky-400 to-sky-500",
   },
   {
     n: "02",
     icon: Cpu,
     title: "ZenTicket analiza",
-    desc: "Nuestra IA identifica el\ncomercio y extrae toda la\ninformación necesaria.",
+    desc: "Nuestra IA identifica el comercio y extrae toda la información necesaria.",
     color: "from-blue-500 to-blue-600",
   },
   {
     n: "03",
     icon: Zap,
     title: "Automatización inteligente",
-    desc: "Ingresamos al portal correcto,\ncompletamos los datos y\nenviamos la solicitud.",
+    desc: "Ingresamos al portal correcto, completamos los datos y enviamos la solicitud.",
     color: "from-indigo-500 to-indigo-600",
   },
   {
     n: "04",
     icon: Check,
     title: "Factura lista",
-    desc: "Recibe tu factura en\nsegundos en tu correo y\nen la app.",
+    desc: "Recibe tu factura en segundos en tu correo y en la app.",
     color: "from-emerald-500 to-emerald-600",
   },
 ];
@@ -41,7 +41,7 @@ const HowItWorks = () => {
       className="relative bg-white"
     >
       <div className="absolute inset-0 zt-soft-bg opacity-50" />
-      <div className="relative max-w-[1240px] mx-auto px-6 lg:px-8 py-16 lg:py-20">
+      <div className="relative max-w-[1240px] mx-auto px-6 lg:px-8 py-8 lg:py-20">
         <h2 className="text-center font-display font-extrabold text-[28px] sm:text-[32px] lg:text-[36px] tracking-tight text-slate-900">
           Así de fácil funciona ZenTicket
         </h2>
@@ -50,7 +50,7 @@ const HowItWorks = () => {
           {/* dotted connector */}
           <div className="hidden lg:block absolute top-[34px] left-[10%] right-[10%] h-[2px] zt-dotline" />
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-10 gap-x-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-12 sm:gap-y-10 gap-x-6">
             {steps.map((s, idx) => (
               <div key={s.n} className="flex flex-col items-center text-center">
                 <div

@@ -36,12 +36,12 @@ const TestimonialsSection = () => {
           "linear-gradient(180deg, #060914 0%, #080d22 50%, #060a18 100%)",
       }}
     >
-      <div className="max-w-[1240px] mx-auto px-6 lg:px-8 py-16 lg:py-20">
+      <div className="max-w-[1240px] mx-auto px-6 lg:px-8 py-5 sm:py-8 lg:py-20">
         <div className="grid lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-3">
             <h2 className="font-display font-extrabold text-[28px] sm:text-[32px] lg:text-[36px] leading-[1.05] tracking-tight">
-              Lo que dicen
-              <br /> nuestros usuarios
+              Lo que dicen{" "}
+              <br className="hidden sm:inline" /> nuestros usuarios
             </h2>
             <button
               data-testid={TID.testimonials.seeMore}
@@ -76,7 +76,7 @@ const TestimonialsSection = () => {
                   </div>
                   <button
                     aria-label="Siguiente"
-                    className="w-7 h-7 grid place-items-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10"
+                    className="hidden sm:grid w-7 h-7 place-items-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10"
                   >
                     <ChevronRight size={14} />
                   </button>
