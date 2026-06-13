@@ -71,7 +71,7 @@ export default function ProfileForm({
 
   // Appearance Choice setup synced with the real layout theme
   const [customTheme, setCustomTheme] = useState<"light" | "dark" | "system">(
-    () => (localStorage.getItem("zenticket_theme") as "light" | "dark" | "system") || "light"
+    () => (localStorage.getItem("zenticket_theme") as "light" | "dark" | "system") || "dark"
   );
 
   const applyAppTheme = (choice: "light" | "dark" | "system") => {
@@ -80,7 +80,7 @@ export default function ProfileForm({
     
     let active = choice;
     if (choice === "system") {
-      active = "light"; // Default clean presentation light theme
+      active = "dark"; // Default clean presentation dark theme
     }
     
     document.documentElement.setAttribute("data-theme", active);

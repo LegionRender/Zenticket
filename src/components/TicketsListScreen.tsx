@@ -1942,7 +1942,7 @@ export default function TicketsListScreen({
   // STANDARD INTERACTIVE MAIN SCREEN LIST VIEW
   // ----------------------------------------------------
   return (
-    <div className="w-full flex flex-col font-sans select-none text-left bg-[#F4F7FC] animate-fade-in_50">
+    <div className="w-full flex flex-col font-sans select-none text-left bg-[#F4F7FC] dark:bg-transparent animate-fade-in_50">
       {/* 1. DEEP IMPERIAL BLUE GRADIENT HEADER CARD */}
       <div className="bg-gradient-to-b from-[#0B3EE4] via-[#05229C] to-[#01144F] text-white px-5 pt-10 pb-32 rounded-b-[40px] shadow-lg relative overflow-hidden shrink-0">
         <div className="absolute right-[-20%] top-[-20%] w-60 h-60 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
@@ -2047,7 +2047,7 @@ export default function TicketsListScreen({
 
       {/* 2. CURVY WHITE CONTENT WRAPPER */}
       <div className="px-5 -mt-24 pb-28 relative z-10 w-full max-w-lg mx-auto sm:max-w-2xl md:max-w-4xl lg:max-w-6xl">
-        <div className="bg-white rounded-[32px] p-5 md:p-8 shadow-[0_20px_50px_rgba(15,23,42,0.06)] border border-slate-100">
+        <div className="bg-white dark:bg-[#0b0d19]/85 dark:backdrop-blur-md rounded-[32px] p-5 md:p-8 shadow-[0_20px_50px_rgba(15,23,42,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-slate-100 dark:border-white/5">
           {/* A. SEARCH BAR INPUT AND SLIDERS */}
           <div className="flex gap-2 items-center mb-6">
             <div className="relative flex-1">

@@ -36,7 +36,6 @@ import {
 import ScannerAndSimulator from "@/components/ScannerAndSimulator";
 import TicketsListScreen from "@/components/TicketsListScreen";
 import ConnectorsList from "@/components/ConnectorsList";
-import VaultScreen from "@/components/VaultScreen";
 import ProfileForm from "@/components/ProfileForm";
 import AdminScreen from "@/components/AdminScreen";
 import InicioScreen from "@/components/InicioScreen";
@@ -49,12 +48,9 @@ import fondoCelular from "@/Fondo Celular.png";
 const MENU_ITEMS = [
   { tab: "inicio", label: "Inicio", icon: <Home className="w-4 h-4" /> },
   { tab: "capturar", label: "Escanear", icon: <Sparkles className="w-4 h-4" /> },
-  { tab: "tickets", label: "Mis Tickets", icon: <Layers className="w-4 h-4" /> },
-  { tab: "conectores", label: "Portales SAT", icon: <Building className="w-4 h-4 text-emerald-500" /> },
-  { tab: "conocimiento", label: "Conocimiento", icon: <BookOpen className="w-4 h-4" /> },
-  { tab: "gastos", label: "Mis Gastos", icon: <BarChart3 className="w-4 h-4" /> },
-  { tab: "cuenta", label: "Mi Cuenta", icon: <User className="w-4 h-4" /> },
-  { tab: "admin", label: "Auditoría", icon: <ShieldCheck className="w-4 h-4 text-amber-500" /> }
+  { tab: "tickets", label: "Tickets/Facturas", icon: <Layers className="w-4 h-4" /> },
+  { tab: "gastos", label: "Gastos", icon: <BarChart3 className="w-4 h-4" /> },
+  { tab: "cuenta", label: "Cuenta", icon: <User className="w-4 h-4" /> }
 ];
 
 export const Dashboard = () => {
@@ -541,64 +537,144 @@ export const Dashboard = () => {
 
   return (
     <div 
-      className="min-h-screen text-[#0b1020] font-body selection:bg-blue-600/10 selection:text-blue-600 flex flex-col md:flex-row pb-20 md:pb-0"
-      style={{ backgroundColor: '#F4F7FC' }}
+      className="min-h-screen text-[#0b1020] dark:text-slate-100 font-body selection:bg-blue-600/10 selection:text-blue-600 flex flex-col md:flex-row pb-20 md:pb-0 bg-[#F4F7FC] dark:bg-[#05070e] transition-colors duration-200"
     >
       
       {/* 1. DESKTOP SIDEBAR MENU (Left screen alignment) */}
-      <aside className="hidden md:flex flex-col w-64 bg-white/80 backdrop-blur-md border-r border-slate-200/40 fixed inset-y-0 left-0 z-40 p-6 shadow-sm">
+      <aside className="hidden md:flex flex-col w-64 bg-white/90 backdrop-blur-md border-r border-slate-200/40 fixed inset-y-0 left-0 z-40 p-6 shadow-sm">
         <div className="flex flex-col h-full justify-between">
           <div>
             {/* Top Brand Logo */}
-            <div className="cursor-pointer mb-8 py-2 border-b border-slate-200/30 pb-5" onClick={() => setActiveTab("capturar")}>
-              <ZenLogo size={38} className="h-9 w-auto" />
+            <div className="cursor-pointer mb-7 py-2 border-b border-slate-200/30 pb-4" onClick={() => setActiveTab("inicio")}>
+              <ZenLogo size={36} className="h-8 w-auto" />
             </div>
 
             {/* Navigation Menu Links */}
             <nav className="flex flex-col gap-1.5 px-0.5">
-              {MENU_ITEMS.filter((item) => item.tab !== "admin" || user?.email === "legionrender@gmail.com").map((item) => (
-                <button
-                  key={item.tab}
-                  onClick={() => setActiveTab(item.tab)}
-                  className={`flex items-center gap-3 w-full px-4.5 py-3.5 rounded-xl text-[11.5px] uppercase font-display font-extrabold tracking-wider transition-all duration-200 cursor-pointer ${
-                    activeTab === item.tab
-                      ? "zt-btn-primary text-white scale-[1.02] shadow-sm shadow-blue-500/20"
-                      : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/30"
-                  }`}
-                >
-                  <span className={`transition-transform duration-150 ${activeTab === item.tab ? "text-white scale-110" : "text-slate-400 group-hover:scale-110"}`}>
-                    {item.icon}
-                  </span>
-                  <span>{item.label}</span>
-                </button>
-              ))}
+              {/* Inicio */}
+              <button
+                key="inicio"
+                onClick={() => setActiveTab("inicio")}
+                className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-[12px] uppercase font-display font-extrabold tracking-wider transition-all duration-200 cursor-pointer ${
+                  activeTab === "inicio"
+                    ? "bg-[#0b53f4] text-white scale-[1.02] shadow-sm shadow-blue-500/20"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-white/5"
+                }`}
+              >
+                <Home className="w-4 h-4 shrink-0" />
+                <span>Inicio</span>
+              </button>
+
+              {/* Botón Destacado Escanear Ticket */}
+              <button
+                key="capturar"
+                onClick={() => setActiveTab("capturar")}
+                className={`flex items-center justify-between w-full px-4 py-3 rounded-xl text-[12px] uppercase font-display font-black tracking-wider transition-all duration-200 cursor-pointer relative overflow-hidden group shadow-sm ${
+                  activeTab === "capturar"
+                    ? "bg-gradient-to-r from-[#0b53f4] to-[#01144f] text-white scale-[1.02]"
+                    : "bg-[#0b53f4]/15 text-[#0b53f4] hover:bg-[#0b53f4] hover:text-white border border-[#0b53f4]/10"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Camera className="w-4 h-4 shrink-0 text-[#0b53f4] group-hover:text-white group-hover:scale-110 transition-all duration-150" />
+                  <span>Escanear ticket</span>
+                </div>
+                <Sparkles className="w-3.5 h-3.5 text-blue-300 animate-pulse" />
+              </button>
+
+              {/* Tickets/Facturas */}
+              <button
+                key="tickets"
+                onClick={() => setActiveTab("tickets")}
+                className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-[12px] uppercase font-display font-extrabold tracking-wider transition-all duration-200 cursor-pointer ${
+                  activeTab === "tickets"
+                    ? "bg-[#0b53f4] text-white scale-[1.02] shadow-sm shadow-blue-500/20"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-white/5"
+                }`}
+              >
+                <Ticket className="w-4 h-4 shrink-0" />
+                <span>Tickets/Facturas</span>
+              </button>
+
+              {/* Gastos */}
+              <button
+                key="gastos"
+                onClick={() => setActiveTab("gastos")}
+                className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-[12px] uppercase font-display font-extrabold tracking-wider transition-all duration-200 cursor-pointer ${
+                  activeTab === "gastos"
+                    ? "bg-[#0b53f4] text-white scale-[1.02] shadow-sm shadow-blue-500/20"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-white/5"
+                }`}
+              >
+                <BarChart3 className="w-4 h-4 shrink-0" />
+                <span>Gastos</span>
+              </button>
+
+              {/* Cuenta */}
+              <button
+                key="cuenta"
+                onClick={() => setActiveTab("cuenta")}
+                className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-[12px] uppercase font-display font-extrabold tracking-wider transition-all duration-200 cursor-pointer ${
+                  activeTab === "cuenta"
+                    ? "bg-[#0b53f4] text-white scale-[1.02] shadow-sm shadow-blue-500/20"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-white/5"
+                }`}
+              >
+                <User className="w-4 h-4 shrink-0" />
+                <span>Cuenta</span>
+              </button>
             </nav>
           </div>
 
-          <div className="space-y-4 pt-5 border-t border-slate-200/45 px-1">
-            {/* Active User Email */}
-            <div className="flex flex-col gap-1 bg-white/50 border border-slate-200/40 p-3.5 rounded-2xl shadow-2xs">
-              <span className="text-[10px] font-black text-blue-600/70 uppercase tracking-widest font-display">Sesión Activa</span>
-              <span className="text-xs font-extrabold text-slate-800 truncate" title={user?.email}>
-                {user?.email}
-              </span>
+          <div className="space-y-4 pt-4 border-t border-slate-200/45 px-1">
+            {/* Resumen del plan */}
+            <div className="bg-slate-50 border border-slate-200/30 p-3 rounded-2xl">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-display">Plan Activo</span>
+              <div className="flex justify-between items-center mt-1">
+                <span className="text-[12px] font-extrabold text-slate-800">
+                  {fiscalProfile?.plan === "empresa" ? "Zen Empresa" : fiscalProfile?.plan === "personal" ? "Zen Personal" : "Plan Demo Gratis"}
+                </span>
+                <span className="text-[10px] font-black text-[#0b53f4] bg-blue-50 px-1.5 py-0.5 rounded-full uppercase">Activo</span>
+              </div>
             </div>
 
-            {/* Logout Button */}
-            <button
-              onClick={() => {
-                logout();
-                toast.success("Has cerrado sesión exitosamente.");
-              }}
-              className="w-full text-[11px] font-black uppercase tracking-widest text-[#EF4444] bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 py-3 rounded-full transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
-            >
-              <LogOut className="w-3.5 h-3.5 stroke-[2.3]" />
-              <span>Cerrar Sesión</span>
-            </button>
+            {/* Separated Administrator Mode Trigger (Restricted to legionrender@gmail.com) */}
+            {user?.email === "legionrender@gmail.com" && (
+              <button
+                onClick={() => setActiveTab("admin")}
+                className={`w-full text-left flex items-center justify-between p-3 rounded-xl transition duration-200 cursor-pointer text-xs ${
+                  activeTab === "admin"
+                    ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
+                    : "bg-amber-500/5 text-amber-700 hover:bg-amber-500/10 border border-amber-500/10"
+                }`}
+              >
+                <div className="flex items-center gap-2 font-display font-black uppercase">
+                  <ShieldCheck className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>Admin Console</span>
+                </div>
+                <span className="text-[8px] font-bold bg-amber-500 text-white px-1 py-0.2 rounded-full">ROOT</span>
+              </button>
+            )}
 
-            {/* Bottom Brand Logo stamp */}
-            <div className="pt-2 flex justify-center opacity-65 hover:opacity-100 transition-opacity">
-              <ZenLogo size={24} className="h-6 w-auto" />
+            {/* User Profile avatar + logout */}
+            <div className="flex items-center gap-3 bg-white border border-slate-200/30 p-3 rounded-2xl shadow-2xs">
+              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0 text-blue-600 font-black text-[11px] border border-blue-100">
+                {user?.email?.slice(0, 2).toUpperCase() || "ZT"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-extrabold text-slate-800 block truncate" title={user?.email}>
+                  {user?.email}
+                </span>
+                <button
+                  onClick={() => {
+                    logout();
+                    toast.success("Has cerrado sesión exitosamente.");
+                  }}
+                  className="text-[10px] font-bold text-rose-500 hover:underline text-left mt-0.5 block cursor-pointer"
+                >
+                  Cerrar Sesión
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -693,15 +769,6 @@ export const Dashboard = () => {
                 connectors={connectors}
                 onLearnConnector={onLearnConnector}
                 isLoading={isLearningLoading}
-              />
-            </div>
-          )}
-
-          {/* TAB 4: VAULT / INVOICES HISTORIAL */}
-          {activeTab === "historial" && (
-            <div className="animate-fade-in_50">
-              <VaultScreen
-                invoices={invoices}
                 onTabChange={setActiveTab}
               />
             </div>
@@ -788,7 +855,7 @@ export const Dashboard = () => {
         <div className="flex w-full h-[84px] items-center justify-between px-3 relative z-10 pt-[5px]">
           
           {/* Left partition buttons (Inicio & Tickets) */}
-          <div className={`flex justify-around items-center ${user?.email === "legionrender@gmail.com" ? "w-[35%]" : "w-[38%]"}`}>
+          <div className="flex justify-around items-center w-[38%]">
             {/* 1. Inicio */}
             <button
               onClick={() => { setActiveTab("inicio"); setIsMobileMenuOpen(false); }}
@@ -811,20 +878,20 @@ export const Dashboard = () => {
             >
               <Ticket className="w-[22px] h-[22px]" fill={activeTab === "tickets" ? "#0B53F4" : "none"} strokeWidth={activeTab === "tickets" ? 1.5 : 2} />
               <span className={`text-[10px] tracking-tight transition-all ${activeTab === "tickets" ? "font-bold text-[#0B53F4]" : "font-semibold text-slate-400"}`}>
-                Tickets
+                Facturas
               </span>
             </button>
           </div>
 
           {/* Balanced empty slot space in center for floating button label */}
-          <div className={`${user?.email === "legionrender@gmail.com" ? "w-[16%]" : "w-[20%]"} flex flex-col items-center justify-end h-full pb-3.5 pointer-events-none select-none z-10`}>
+          <div className="w-[24%] flex flex-col items-center justify-end h-full pb-3.5 pointer-events-none select-none z-10">
             <span className={`text-[10px] tracking-tight transition-all ${activeTab === "capturar" ? "font-bold text-[#0B53F4]" : "font-semibold text-slate-400"}`}>
               Escanear
             </span>
           </div>
 
-          {/* Right partition buttons (Gastos, Cuenta, and Admin if matches) */}
-          <div className={`flex justify-around items-center ${user?.email === "legionrender@gmail.com" ? "w-[49%]" : "w-[38%]"}`}>
+          {/* Right partition buttons (Gastos & Cuenta) */}
+          <div className="flex justify-around items-center w-[38%]">
             {/* 3. Gastos */}
             <button
               onClick={() => { setActiveTab("gastos"); setIsMobileMenuOpen(false); }}
@@ -850,23 +917,7 @@ export const Dashboard = () => {
                 Cuenta
               </span>
             </button>
-
-            {/* 5. Admin */}
-            {user?.email === "legionrender@gmail.com" && (
-              <button
-                onClick={() => { setActiveTab("admin"); setIsMobileMenuOpen(false); }}
-                className={`flex flex-col items-center gap-1 cursor-pointer transition-colors duration-150 py-1.5 w-11 ${
-                  activeTab === "admin" ? "text-amber-500" : "text-slate-400 hover:text-slate-650"
-                }`}
-              >
-                <ShieldCheck className="w-[22px] h-[22px]" fill={activeTab === "admin" ? "#F59E0B" : "none"} strokeWidth={activeTab === "admin" ? 1.5 : 2} />
-                <span className={`text-[10px] tracking-tight transition-all ${activeTab === "admin" ? "font-bold text-amber-500" : "font-semibold text-slate-400"}`}>
-                  Admin
-                </span>
-              </button>
-            )}
           </div>
-
         </div>
       </div>
 

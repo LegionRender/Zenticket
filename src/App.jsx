@@ -12,10 +12,10 @@ function App() {
 
   useEffect(() => {
     // 1. Load and apply Theme choice
-    const themeChoice = localStorage.getItem("zenticket_theme") || "light";
+    const themeChoice = localStorage.getItem("zenticket_theme") || "dark";
     let activeTheme = themeChoice;
     if (themeChoice === "system") {
-      activeTheme = "light"; // Default to premium light mode to keep crisp white background
+      activeTheme = "dark"; // Default to premium dark mode to keep gorgeous dark blue background
     }
     document.documentElement.setAttribute("data-theme", activeTheme);
     if (activeTheme === "dark") {

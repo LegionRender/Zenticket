@@ -113,7 +113,7 @@ export default function ConocimientoScreen({ onTabChange }: ConocimientoScreenPr
         {/* Title & Subtitle */}
         <div className="mb-6 relative z-10 text-left flex items-start gap-3">
           <button 
-            onClick={() => onTabChange("inicio")} 
+            onClick={() => onTabChange("cuenta")} 
             className="p-2.5 rounded-2xl bg-white/10 hover:bg-white/15 text-white transition active:scale-95 cursor-pointer border-0 mt-0.5"
           >
             <ArrowLeft className="w-4.5 h-4.5" />

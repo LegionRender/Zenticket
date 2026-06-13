@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Connector, ConnectorField } from "../types";
 import { 
   Link2, Search, Cpu, CheckCircle, Database, HelpCircle, Loader2, X, 
-  Layers, Coffee, Utensils, Car, Home, ShoppingBag, ArrowRight, ChevronDown,
+  Layers, Coffee, Utensils, Car, Home, ShoppingBag, ArrowRight, ArrowLeft, ChevronDown,
   Bell, Clock
 } from "lucide-react";
 import { useToast } from "./Toast";
@@ -12,6 +12,7 @@ interface ConnectorsListProps {
   connectors: Connector[];
   onLearnConnector: (nombre: string, rfc: string) => Promise<void>;
   isLoading: boolean;
+  onTabChange?: (tab: string) => void;
 }
 
 const CATEGORY_ORDER: Record<string, number> = {
@@ -91,7 +92,7 @@ const getCategoryStyles = (category: string) => {
   }
 };
 
-export default function ConnectorsList({ connectors, onLearnConnector, isLoading }: ConnectorsListProps) {
+export default function ConnectorsList({ connectors, onLearnConnector, isLoading, onTabChange }: ConnectorsListProps) {
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [newNombre, setNewNombre] = useState("");
@@ -236,13 +237,23 @@ export default function ConnectorsList({ connectors, onLearnConnector, isLoading
         </div>
 
         {/* Personalized Greetings heading styling */}
-        <div className="mb-6 relative z-10 text-left">
-          <h2 className="text-[25px] font-black tracking-tight text-white leading-none">
-            Portales SAT
-          </h2>
-          <span className="text-[11.5px] text-blue-100 font-bold block mt-1 tracking-tight select-none opacity-85">
-            Biblioteca de conectores y aprendizaje de portales
-          </span>
+        <div className="mb-6 relative z-10 text-left flex items-start gap-3">
+          {onTabChange && (
+            <button 
+              onClick={() => onTabChange("cuenta")} 
+              className="p-2.5 rounded-2xl bg-white/10 hover:bg-white/15 text-white transition active:scale-95 cursor-pointer border-0 mt-0.5"
+            >
+              <ArrowLeft className="w-4.5 h-4.5" />
+            </button>
+          )}
+          <div>
+            <h2 className="text-[25px] font-black tracking-tight text-white leading-none">
+              Portales SAT
+            </h2>
+            <span className="text-[11.5px] text-blue-100 font-bold block mt-1 tracking-tight select-none opacity-85">
+              Biblioteca de conectores y aprendizaje de portales
+            </span>
+          </div>
         </div>
 
         {/* Stats horizontal side-by-side block matching mockup */}
